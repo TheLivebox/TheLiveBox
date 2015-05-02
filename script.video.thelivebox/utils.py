@@ -231,7 +231,7 @@ def GetText(title, text='', hidden=False, allowEmpty=False):
 
 
 def GetPassword():
-    return xbmcaddon.Addon('plugin.video.thelivebox.admin').getSetting('PASSWORD')
+    return xbmcaddon.Addon('plugin.video.thelivebox-admin').getSetting('PASSWORD')
 
 
 def enableWebserver():

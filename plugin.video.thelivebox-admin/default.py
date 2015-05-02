@@ -22,7 +22,7 @@ import xbmcaddon
 
 
 def main():
-    xbmcaddon.Addon('plugin.video.thelivebox.admin').openSettings()
+    xbmcaddon.Addon('plugin.video.thelivebox-admin').openSettings()
 
 
 if __name__ == '__main__': 

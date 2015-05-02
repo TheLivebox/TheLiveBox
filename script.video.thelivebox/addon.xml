@@ -4,7 +4,7 @@
         <import addon="xbmc.python" version="2.1.0"/>
 		<import addon="plugin.video.vimeo" version="4.1.1"/>
 		<import addon="plugin.video.thelivebox" version="1.0.0.8"/>
-		<import addon="plugin.video.theliveboxadmin" version="1.0.0"/>
+		<import addon="plugin.video.thelivebox-admin" version="1.0.0"/>
     </requires>	
     <extension point="xbmc.python.script" library="default.py">
         <provides>video</provides>

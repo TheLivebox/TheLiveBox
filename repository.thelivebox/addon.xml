@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.thelivebox" 
+        name="The Livebox Network" 
+        version="1.0.0"
+        provider-name="The Livebox Network">
+    <extension point="xbmc.addon.repository" 
+        name="spoysers XBMC Add-ons">
+        <info compressed="false">https://raw.github.com/TheLivebox/TheLivebox/master/addons.xml</info>
+        <checksum>https://raw.github.com/TheLivebox/TheLivebox/master/addons.xml.md5</checksum>
+        <datadir zip="true">https://raw.github.com/TheLivebox/TheLivebox/master/zips/</datadir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary>Install Kodi add-ons from the official Livebox Network repository</summary>
+        <description>Install Kodi add-ons from the official Livebox Network repository</description>
+        <disclaimer></disclaimer>
+        <platform>all</platform>
+    </extension>
+</addon>

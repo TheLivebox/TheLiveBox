@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+    <category label="30040">
+        <setting id="VERSION"  type="text"      label="Current Version" default="0.0.0"   visible="false"/>
+		
+		<setting id="DEMO"     type="bool"   label="30047" default="false"/>
+		
+		<setting id="CLIENT"    type="text"   label="30016" default=""/>		
+		<setting id="PLAYBACK"  type="enum"   label="30030" lvalues="30031|30032" default="0"/>
+				
+		<setting id="BOOTVIDEO" type="bool"   label="30017" default="true"/>
+		<setting id="SKIN"      type="select" label="30022" source="../../addons/script.video.thelivebox/resources/skins/" mask="/" default="Default"/>
+    </category>
+		
+	<category label="30041">
+		<setting id="HOST_MODE"   type="enum"      label="30033" lvalues="30034|30035" default="1"/>
+		<setting id="SERVER_MODE" type="enum"      label="30036" lvalues="30037|30038" default="0"           visible="eq(-1,1)"/>
+		<setting id="SERVER_IP"   type="ipaddress" label="30039"                       default="192.168.1.0" visible="eq(-1,1)+eq(-2,1)"/>		
+		<setting id="SERVER_PORT" type="number"    label="30042"                       default="8080"        visible="eq(-2,1)+eq(-3,1)"/>		
+		<setting id="FALLBACK"    type="bool"                                          default="false"       visible="false"/>		
+    </category>
+</settings>

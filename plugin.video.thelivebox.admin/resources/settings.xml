@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+    <category label="30040">
+		<setting id="PASSWORD" type="text"   label="30001" default="livebox123" option="hidden"/>		
+    </category>
+</settings>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addons>
+<addon id="plugin.video.thelivebox" name="The Live Box" version="1.0.0.8" provider-name="The Livebox Network">
+  <requires>
+    <import addon="xbmc.python" version="2.1.0"/>
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="default.py">
+        <provides></provides>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en">Welcome to The Live Box Network!</summary>
+    <description lang="en">Welcome to The Live Box Network! The Live Box produces video programming for businesses that is curated content to the client.  The Live Box features rich, lifestyle programming that helps businesses brand and market to their clients through HDTV's, iPads, Social Media and web. Programming is updated monthly and can include On Location filming segments as well. Find out more by visiting www.thelivebox.com.</description>
+    <platform>all</platform>
+    <language>en</language>
+    <license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
+    <forum></forum>
+    <website></website>
+    <source></source>
+    <email></email>
+  </extension>
+</addon>
+
+<addon id="plugin.video.thelivebox.admin" name="The Live Box Administrator Tools" version="1.0.0" provider-name="The Livebox Network">
+  <requires>
+    <import addon="xbmc.python" version="2.1.0"/>
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="default.py">
+        <provides>video</provides>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en">Welcome to The Live Box Network!</summary>
+    <description lang="en">Welcome to The Live Box Network! The Live Box produces video programming for businesses that is curated content to the client.  The Live Box features rich, lifestyle programming that helps businesses brand and market to their clients through HDTV's, iPads, Social Media and web. Programming is updated monthly and can include On Location filming segments as well. Find out more by visiting www.thelivebox.com.</description>
+    <platform>all</platform>
+    <language>en</language>
+    <license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
+    <forum></forum>
+    <website></website>
+    <source></source>
+    <email></email>
+  </extension>
+</addon>
+
+<addon id="plugin.video.vimeo" name="Vimeo" version="4.1.1" provider-name="bromix">
+	<requires>
+		<import addon="xbmc.python" version="2.14.0"/>
+	</requires>
+	<extension point="xbmc.python.pluginsource" library="default.py">
+		<provides>video</provides>
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en">Plugin for Vimeo</summary>
+        <description lang="en">Vimeo is a one of the biggest video-sharing websites of the world.</description>
+		<summary lang="de">Plugin für Vimeo</summary>
+        <description lang="de">Vimeo ist ein eines der größten Video-Sharing-Websites der Welt.</description>
+        <disclaimer lang="en"></disclaimer>
+		<language></language>
+		<platform>all</platform>
+		<license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
+		<forum>http://forum.kodi.tv/showthread.php?tid=200735</forum>
+		<website>www.vimeo.com/</website>
+		<email>bromix at gmx dot net</email>
+		<source>https://github.com/bromix/plugin.video.vimeo</source>
+	</extension>
+</addon>
+
+<addon id="repository.thelivebox"
+        name="The Livebox Network"
+        version="1.0.0"
+        provider-name="The Livebox Network">
+    <extension point="xbmc.addon.repository"
+        name="spoysers XBMC Add-ons">
+        <info compressed="false">https://raw.github.com/TheLivebox/TheLivebox/master/addons.xml</info>
+        <checksum>https://raw.github.com/TheLivebox/TheLivebox/master/addons.xml.md5</checksum>
+        <datadir zip="true">https://raw.github.com/TheLivebox/TheLivebox/master/zips/</datadir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary>Install Kodi add-ons from the official Livebox Network repository</summary>
+        <description>Install Kodi add-ons from the official Livebox Network repository</description>
+        <disclaimer></disclaimer>
+        <platform>all</platform>
+    </extension>
+</addon>
+
+<addon id="script.video.thelivebox" name="The Livebox Network" version="1.0.0.3" provider-name="The Livebox Network">
+    <requires>
+        <import addon="xbmc.python" version="2.1.0"/>
+		<import addon="plugin.video.vimeo" version="4.1.1"/>
+		<import addon="plugin.video.thelivebox" version="1.0.0.8"/>
+		<import addon="plugin.video.thelivebox.admin" version="1.0.0"/>
+    </requires>
+    <extension point="xbmc.python.script" library="default.py">
+        <provides>video</provides>
+    </extension>
+	<extension point="xbmc.service" library="service.py" start="startup" />
+    <extension point="xbmc.addon.metadata">
+		<summary lang="en">Welcome to The Live Box Network!</summary>
+		<description lang="en">Welcome to The Live Box Network! The Live Box produces video programming for businesses that is curated content to the client.  The Live Box features rich, lifestyle programming that helps businesses brand and market to their clients through HDTV's, iPads, Social Media and web. Programming is updated monthly and can include On Location filming segments as well. Find out more by visiting www.thelivebox.com.</description>
+		<platform>all</platform>
+  </extension>
+</addon>
+</addons>

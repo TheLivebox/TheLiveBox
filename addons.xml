@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.thelivebox" name="The Live Box" version="1.0.0.8" provider-name="The Livebox Network">
+<addon id="plugin.video.thelivebox" name="The Live Box Helper" version="1.0.0.8" provider-name="The Livebox Network">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
   </requires>

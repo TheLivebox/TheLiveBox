@@ -32,13 +32,6 @@ if __name__ == '__main__':
 
 
     import utils
-
-    print "1***********************"
-    print utils.getKodiSetting('services.webserverport') 
-    print "2**************************"
-    print utils.setKodiSetting('services.webserverport', '1234') 
-    print utils.getKodiSetting('services.webserverport') 
-    print "3*************************"
     
     utils.setSetting('FALLBACK', 'false')
     utils.Launch(param)

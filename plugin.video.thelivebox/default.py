@@ -116,7 +116,8 @@ def MainList(client):
         AddDir(99, 'Demo',                   DEMO,       isFolder=True,  isPlayable=False, desc='Demo',         contextMenu=menu)
 
 def AddExternalItem(index, menu):
-    AddDir(index, GETTEXT(30048), EXTERNAL, isFolder=True, isPlayable=False, desc=GETTEXT(30049), contextMenu=menu)
+    pass
+    #AddDir(index, GETTEXT(30048), EXTERNAL, isFolder=True, isPlayable=False, desc=GETTEXT(30049), contextMenu=menu)
 
 
 def DemoList():

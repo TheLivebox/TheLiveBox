@@ -1,0 +1,5 @@
+v1.0.0.9:
+  - version bump for repository functionality
+
+v1.0.0.8:
+  - server functionality added to support Server / Client version of addon

@@ -21,7 +21,18 @@
 import xbmcaddon
 
 
+import sys
+addon = xbmcaddon.Addon(id = 'script.video.thelivebox')
+path  = addon.getAddonInfo('path')
+sys.path.insert(0, path)
+import utils
+
+
 def main():
+    if not utils.VerifyPassword():
+        utils.DialogOK(utils.GETTEXT(30054))
+        return
+
     xbmcaddon.Addon('plugin.video.thelivebox-admin').openSettings()
 
 

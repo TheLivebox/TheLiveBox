@@ -70,7 +70,7 @@
 					<font>font13</font>
 					<wrapmultiline>true</wrapmultiline>
 					<autoscroll time="1200" delay="5000" repeat="5000">true</autoscroll>    
-					<label>$INFO[Window(10000).Property(lbp_MAINDESC)]</label>
+					<label>$INFO[Window(10000).Property(LB_MAINDESC)]</label>
 				</control>
 			 
 			 <control type="image">
@@ -188,7 +188,7 @@
 					<textureslidernibfocus>lbp_ScrollBarNib.png</textureslidernibfocus>
 					<onleft>59</onleft>
 					<onright>3010</onright>                
-					<showonepage>true</showonepage>
+					<showonepage>false</showonepage>
 					<orientation>vertical</orientation>
 				</control> 
 			</control> <!-- MainList Group -->

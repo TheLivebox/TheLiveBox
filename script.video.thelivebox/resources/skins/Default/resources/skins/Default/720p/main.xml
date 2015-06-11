@@ -57,19 +57,12 @@
 			<texture>lb_icon_video.png</texture>
 		</control>
 		
-		<control type="grouplist">
-			<posx>65</posx>
+		<control type="label">
+		    <posx>65</posx>
 			<posy>5</posy>
-			<width>1000</width>
-			<height>30</height>
-			<orientation>horizontal</orientation>
-			<align>left</align>
-			<itemgap>5</itemgap>
-			
-			<control type="label">
- 				<textcolor>white</textcolor>
-				<label>$INFO[Window(10000).Property(LB_TITLE)]</label>
-			</control>
+			<textcolor>white</textcolor>
+			<font>font13</font>
+			<label>$INFO[Window(10000).Property(LB_TITLE)]</label>
 		</control>
 		
 		<control type="label">
@@ -219,12 +212,6 @@
 						<texture border="20">lb_ContentPanel.png</texture>
                         <visible>Player.HasVideo</visible>
 					</control>
-					<control type="videowindow">
-						<posx>14</posx>
-						<posy>11</posy>
-						<width>422</width>
-						<height>240</height>
-					</control>
 					<control type="button" id="3010">
 						<description>Video overlay button</description>
 						<posx>0</posx>
@@ -232,9 +219,15 @@
 						<width>448</width>
 						<height>260</height>
 						<texturenofocus>blank</texturenofocus>
-						<texturefocus border="12,14,10,14">lb_bluebox.png</texturefocus>				
+						<texturefocus border="12,14,10,14">lb_folder-focus.png</texturefocus>	
 						<onleft>159</onleft>
 						<visible>Player.HasVideo</visible>
+					</control>
+					<control type="videowindow">
+						<posx>14</posx>
+						<posy>11</posy>
+						<width>422</width>
+						<height>240</height>
 					</control>
 				</control>
     </controls>

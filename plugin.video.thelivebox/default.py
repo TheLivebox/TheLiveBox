@@ -30,7 +30,12 @@ import xbmcaddon
 import xbmcplugin
 import xbmcgui
 
-import quicknet
+#try:    
+#    from hashlib import md5
+#    MD5 = md5
+#except: 
+#    import md5
+#    MD5 = md5.new
 
 
 import sys
@@ -38,6 +43,8 @@ addon = xbmcaddon.Addon(id = 'script.video.thelivebox')
 path  = addon.getAddonInfo('path')
 sys.path.insert(0, path)
 import utils
+import sfile
+import s3
 
 
 ADDON   = utils.ADDON
@@ -48,24 +55,28 @@ PROFILE = utils.PROFILE
 
 
 #Modes
-VIDEO_ADDON = utils.VIDEO_ADDON
-VIDEO_LOCAL = utils.VIDEO_LOCAL
-CLEARCACHE  = utils.CLEARCACHE
-SETTINGS    = utils.SETTINGS
-WAITING     = utils.WAITING
-EXAM        = utils.EXAM
-DEMO        = utils.DEMO
-EXTERNAL    = utils.EXTERNAL
+VIDEO_ADDON     = utils.VIDEO_ADDON
+SERVER_FILE     = utils.SERVER_FILE
+SETTINGS        = utils.SETTINGS
+CLEARCACHE      = utils.CLEARCACHE
+WAITING         = utils.WAITING
+EXAM            = utils.EXAM
+DEMO            = utils.DEMO
+SERVER_FOLDER   = utils.SERVER_FOLDER
+LOCAL_FOLDER    = utils.LOCAL_FOLDER
+AMAZON_FILE     = utils.AMAZON_FILE
+AMAZON_FOLDER   = utils.AMAZON_FOLDER
 
-SERVER       = utils.SERVER
-LBVERSION    = utils.LBVERSION
-ADDRESS      = utils.ADDRESS
-RETRIEVE_URL = utils.RETRIEVE_URL
+SERVER           = utils.SERVER
+LBVERSION        = utils.LBVERSION
+ADDRESS          = utils.ADDRESS
+RETRIEVE_URL     = utils.RETRIEVE_URL
 
-
+DELIMETER = utils.DELIMETER
 
 GETTEXT = utils.GETTEXT
 URL     = 'https://vimeo.com/channels/%s/videos/rss'
+
 
 
 def NoPlay(reason):
@@ -99,40 +110,93 @@ def PlayAddonVideo(url, title='', image=''):
     xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, liz)
 
     xbmc.executebuiltin('PlayerControl(%s)' % repeatMode)
-    
-def MainList(client):
-    utils.CheckVersion()
-    
+
+
+def getGlobalMenu():
     menu = []
     menu.append((GETTEXT(30020), '?mode=%d' % SETTINGS))
+    return menu
+    
+
+def MainList(client):    
+    menu = getGlobalMenu()
 
     AddDir(0, '[I]%s[/I]' % GETTEXT(30020), SETTINGS,   isFolder=False, isPlayable=False, desc=GETTEXT(30021), contextMenu=menu)
-    AddDir(1, GETTEXT(30026),               WAITING,    isFolder=False, isPlayable=True,  desc=GETTEXT(30028), contextMenu=menu)
-    AddDir(2, GETTEXT(30027),               EXAM,       isFolder=True,  isPlayable=False, desc=GETTEXT(30029), contextMenu=menu)
+    AddDir(1, '[I]%s[/I]' % GETTEXT(30007), CLEARCACHE, isFolder=False, isPlayable=False, desc=GETTEXT(30018), contextMenu=menu)
+    AddDir(2, GETTEXT(30026),               WAITING,    isFolder=False, isPlayable=True,  desc=GETTEXT(30028), contextMenu=menu)
+    AddDir(3, GETTEXT(30027),               EXAM,       isFolder=True,  isPlayable=False, desc=GETTEXT(30029), contextMenu=menu)
 
-    AddExternalItem(3, menu)
+    #AddAmazonItems(4, '', menu)
+    AddFolderItems(5, '', menu)
 
-    if utils.getSetting('DEMO') == 'true':
-        AddDir(99, 'Demo',                   DEMO,       isFolder=True,  isPlayable=False, desc='Demo',         contextMenu=menu)
+    #if utils.getSetting('DEMO') == 'true':
+    #    AddDir(99, 'Demo',                  DEMO,       isFolder=True,  isPlayable=False, desc='Demo',           contextMenu=menu)
 
-def AddExternalItem(index, menu):
-    pass
-    #AddDir(index, GETTEXT(30048), EXTERNAL, isFolder=True, isPlayable=False, desc=GETTEXT(30049), contextMenu=menu)
+
+def AddAmazonItems(index, folder, menu):
+    browseFolder = utils.GETTEXT(30055)
+    playVideo    = utils.GETTEXT(30056)
+
+    fileImg   = 'DefaultMovies.png'
+    folderImg = 'DefaultFolder.png'
+
+    if len(folder) == 0:
+        AddDir(index, utils.GETTEXT(30059), AMAZON_FOLDER, url=utils.GetClient(), image=folderImg, isFolder=True,    isPlayable=False, desc=browseFolder, contextMenu=menu)
+        return
+
+    if not folder.endswith(DELIMETER):
+        folder += DELIMETER
+
+    folders, files = s3.getFolder(folder)
+
+    for fold in folders:
+        if not utils.isAmazonPlayable(fold):
+            continue
+        label = fold.replace(folder, '', 1).replace('_', ' ')
+        AddDir(index, label, AMAZON_FOLDER, url=fold, image=folderImg, isFolder=True,  isPlayable=False,   desc=browseFolder, contextMenu=menu)
+        index += 1
+
+    for file in files:
+        if not utils.isFilePlayable(file):
+            continue
+        label = file.replace(folder, '', 1).replace('_', ' ').rsplit('.', 1)[0]
+        AddDir(index, label, AMAZON_FILE, url=file, image=fileImg, isFolder=False, isPlayable=True, desc=playVideo, contextMenu=menu)
+        index += 1
+
+
+def AddFolderItems(index, folder, menu):
+    items = utils.parseFolder(folder, GETTEXT(30057))
+    if len(items) == 0:
+        return
+
+    browseFolder = utils.GETTEXT(30055)
+    playVideo    = utils.GETTEXT(30056)
+
+    file   = 'DefaultMovies.png'
+    folder = 'DefaultFolder.png'
+
+    for item in items:
+        label      = item[0]
+        url        = item[1]
+        isPlayable = item[2]
+
+        if isPlayable:
+            AddDir(index, label, SERVER_FILE, url=url, image=file,   isFolder=False, isPlayable=True, desc=playVideo,      contextMenu=menu)
+        else:
+            AddDir(index, label, SERVER_FOLDER, url=url, image=folder, isFolder=True, isPlayable=False,   desc=browseFolder, contextMenu=menu)
+
+        index += 1
 
 
 def DemoList():
-    root = xbmc.translatePath(os.path.join(PROFILE, 'Videos'))
+    root = xbmc.translatePath(os.path.join(utils.HOME, 'resources', 'video'))
     root = root.replace('storage/emulated/0', 'sdcard')
    
-    #AddDir(1, 'Bugs Bunny',    VIDEO_LOCAL, url=os.path.join(root, 'bugs.mp4'),           isFolder=False, isPlayable=True,  desc='Play local video') 
-    #AddDir(2, 'Marillion',     VIDEO_LOCAL, url=os.path.join(root, 'marillion.avi'),      isFolder=False, isPlayable=True,  desc='Play local video')
-    #AddDir(3, '50 50',         VIDEO_LOCAL, url=os.path.join(root, '50 50.avi'),          isFolder=False, isPlayable=True,  desc='Play local video')  
-    #AddDir(4, 'Lets be cops',  VIDEO_LOCAL, url=os.path.join(root, 'Let\'s Be Cops.avi'), isFolder=False, isPlayable=True,  desc='Play local video')  
-    AddDir(5, 'Demo Livebox Video', VIDEO_LOCAL, url=os.path.join(root, 'livebox_id_2015.m4v'),isFolder=False, isPlayable=True,  desc='Play local video')  
+    AddDir(1, 'Demo Livebox Video', SERVER_FILE, url=os.path.join(root, 'livebox_id_2015.m4v'),isFolder=False,   isPlayable=True,  desc='Play local video')  
 
-    AddDir(15, 'version',   LBVERSION, isFolder=True,  isPlayable=False, desc='Indicate if instance is a Livebox server')
-    AddDir(16, 'server',    SERVER,    isFolder=True,  isPlayable=False, desc='Indicate version number of Livebox')
-    AddDir(17, 'address',   ADDRESS,   isFolder=True,  isPlayable=False, desc='Indicate addresss of this Livebox')
+    AddDir(100, 'version',   LBVERSION, isFolder=True,  isPlayable=False, desc='Indicate if this instance is a Livebox   server')
+    AddDir(101, 'server',    SERVER,    isFolder=True,  isPlayable=False, desc='Indicate version number of Livebox   server')
+    AddDir(102, 'address',   ADDRESS,   isFolder=True,  isPlayable=False, desc='Indicate address of this Livebox server')
 
 
 def WaitingRoom(client):    
@@ -182,7 +246,7 @@ def ExaminationRoom(client):
     for video in videos:
         image  = video[2]
         fanart = image.replace('_200x150.jpg', '_1200x800.jpg')
-        AddDir(index, video[0], VIDEO_ADDON, video[1], image, fanart, isFolder=False, isPlayable=True, contextMenu=menu)     
+        AddDir(index, video[0], VIDEO_ADDON, video[1], image, fanart, isFolder=False, isPlayable=True, contextMenu=menu)       
         index += 1
         
 def GetRepeatMode():
@@ -239,7 +303,7 @@ def GetVimeoVideos(html):
 
 
 
-def AddDir(index, name, mode, url=None, image=None, fanart=None, isFolder=False, isPlayable=False, desc='', infoLabels=None, contextMenu=None):
+def AddDir(index, name, mode, url=None, image=None, fanart=None, isFolder=False, isPlayable=False, desc='',   infoLabels=None, contextMenu=None):
     if not image:
         image = ICON
 
@@ -309,17 +373,60 @@ def Server():
         AddDir(1, 'client', 0)
 
 
-def RetrieveURL(url, type):
+def RetrieveURL(url, type, isServer):
     if len(url) == 0:
         return
 
     if type == VIDEO_ADDON:
         AddDir(1, url, 0)
 
-    if type == VIDEO_LOCAL:
+    root = os.path.join(PROFILE, 'local')
+    sfile.makedirs(root)
+
+    if type == SERVER_FILE:
+        #dst = MD5(url).hexdigest()
+        dst = urllib.quote_plus(url)
+        dst = os.path.join(root, dst)
+
+        if not sfile.exists(dst):
+            try:    sfile.copy(url, dst)
+            except: pass
+        AddDir(1, dst, 0)
+
+    if type == AMAZON_FILE:
+        dst = urllib.quote_plus(url)
+        dst = os.path.join(root, dst)
+
+        import download
+        url = s3.getURL(url)
+        url = url.replace('thelivebox.s3.amazonaws.com', 'd2blgl3q9xzi92.cloudfront.net')
+        utils.Log('Amazon URL : %s' % url)
+
+        downloading = sfile.exists(dst+'.part')
+
+        if downloading:
+            if isServer:
+                AddDir(1, dst, 0)
+            else:
+                AddDir(1, url, 0)
+
+            return
+
+        if sfile.exists(dst):
+            AddDir(1, dst, 0)
+            return
+
+        download.download(url, dst)
+
+        if isServer:
+            while sfile.size(dst) == 0:
+                xbmc.sleep(100)
+            AddDir(1, dst, 0)
+            return
+
         AddDir(1, url, 0)
 
-    
+
 def get_params():
     param=[]
     paramstring=sys.argv[2]
@@ -336,7 +443,6 @@ def get_params():
             if (len(splitparams))==2:
                 param[splitparams[0]]=splitparams[1]
     return param
-
 
 
 def refresh():
@@ -356,7 +462,8 @@ def main():
     try:    mode = int(urllib.unquote_plus(params['mode']))
     except: pass
 
-    if mode == VIDEO_ADDON or mode == VIDEO_LOCAL:
+    if mode == VIDEO_ADDON or mode == SERVER_FILE or mode == AMAZON_FILE:
+        isAmazon = (mode == AMAZON_FILE)
         try:    
             try:    url   = urllib.unquote_plus(params['url'])
             except: url = ''
@@ -366,21 +473,26 @@ def main():
 
             try:    image = urllib.unquote_plus(params['image'])
             except: image = ''
-            
+
+            if isAmazon:
+                url = s3.getURL(url)
+                url = url.replace('thelivebox.s3.amazonaws.com', 'd2blgl3q9xzi92.cloudfront.net')
+                utils.Log('Amazon URL : %s' % url)
+                           
             PlayAddonVideo(url, title, image)
 
         except Exception, e:
             utils.Log('Error in VIDEO mode - %s' % str(e))
 
 
-    if mode == CLEARCACHE:
-        quicknet.clearCache()
-        doRefresh = True
+    elif mode == CLEARCACHE:
+        utils.ClearCache()
+        #doRefesh = True
 
 
-    if mode == SETTINGS:
+    elif mode == SETTINGS:
         ADDON.openSettings()
-        doRefresh = True
+        #doRefresh = True
         
         
     elif mode == WAITING:
@@ -402,7 +514,11 @@ def main():
         try:    type = int(urllib.unquote_plus(params['type']))
         except: type = 0
 
-        RetrieveURL(url, type)
+        try:    isServer = urllib.unquote_plus(params['server']).lower() == 'true'
+        except: isServer = False
+
+
+        RetrieveURL(url, type, isServer)
 
 
     elif mode == ADDRESS:
@@ -415,6 +531,20 @@ def main():
 
     elif mode == DEMO:
         DemoList()
+
+
+    elif mode == SERVER_FOLDER:
+        try:    url   = urllib.unquote_plus(params['url'])
+        except: url = ''
+
+        AddFolderItems(0, url, getGlobalMenu())
+
+
+    elif mode == AMAZON_FOLDER:
+        try:    url   = urllib.unquote_plus(params['url'])
+        except: url = ''
+
+        AddAmazonItems(0, url, getGlobalMenu())
 
 
     else:           

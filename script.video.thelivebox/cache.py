@@ -24,29 +24,34 @@ import glob
 import urllib2
 
 import utils
+import sfile
 import xbmc
 
 
 CacheDir  = xbmc.translatePath(os.path.join(utils.PROFILE, 'c'))
 CacheSize = 100
+sfile.makedirs(CacheDir)
 
 
 def clearCache():
     try:
-        import shutil
-        shutil.rmtree(CacheDir)
-        while os.path.isdir(CacheDir):
-            xbmc.sleep(50)
-        checkCacheDir()
-    except: pass
+        sfile.rmtree(CacheDir)
+        while sfile.isdir(CacheDir):
+            xbmc.sleep(50)        
+    except:
+        pass
+
+    checkCacheDir()
 
 
 def checkCacheDir():
     try:
-        if not os.path.isdir(CacheDir):
-            os.makedirs(CacheDir)
+        if sfile.isdir(CacheDir):
+            return
     except:
         pass
+
+    sfile.makedirs(CacheDir)
 
 
 def getURLNoCache(url, agent=None, tidy=True):

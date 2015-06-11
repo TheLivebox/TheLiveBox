@@ -27,7 +27,14 @@ started = False
 import utils
 
 
+#if not utils.verifySource():
+#    utils.systemUpdated(utils.GETTEXT(30060), utils.GETTEXT(30061))
+#    exit()
+
+
 utils.enableWebserver()
+utils.removePartFiles()
+utils.checkVersion()
 
 
 if utils.BOOTVIDEO:    

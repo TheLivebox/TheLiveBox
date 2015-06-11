@@ -25,8 +25,10 @@ import xbmc
 import urllib
 import os
 
-
 import json as simplejson 
+
+import sfile
+import s3
 
 
 ADDONID = 'script.video.thelivebox'
@@ -39,24 +41,56 @@ ICON    = os.path.join(HOME, 'icon.png')
 FANART  = os.path.join(HOME, 'fanart.jpg')
 
 
-VIDEO_ADDON  = 100
-VIDEO_LOCAL  = 200
-VIDEO_REMOTE = 300
-CLEARCACHE   = 400
-SETTINGS     = 500
-WAITING      = 600
-EXAM         = 700
-DEMO         = 800
-EXTERNAL     = 900
+VIDEO_ADDON           = 100
+VIDEO_REMOTE          = 200
+SERVER_FILE           = 300
+LOCAL_FILE            = 400
+SETTINGS              = 500
+CLEARCACHE            = 600
+WAITING               = 700
+EXAM                  = 800
+DEMO                  = 900
+SERVER_FOLDER         = 1000
+LOCAL_FOLDER          = 1100
+AMAZON_FILE           = 1200
+AMAZON_FOLDER         = 1300
+LOCAL_PLAYABLE_FOLDER = 1400
 
-SERVER       = 5100
-LBVERSION    = 5200
-ADDRESS      = 5300
-RETRIEVE_URL = 5400
+SERVER          = 5100
+LBVERSION       = 5200
+ADDRESS         = 5300
+RETRIEVE_URL    = 5400
+
+
+DELIMETER = s3.DELIMETER
+
+
+PLAYABLE = xbmc.getSupportedMedia('video') + '|' + xbmc.getSupportedMedia('music')
+PLAYABLE = PLAYABLE.replace('|.zip', '')
+PLAYABLE = PLAYABLE.split('|')
+
+
+def GetXBMCVersion():
+    #xbmc.executeJSONRPC('{ "jsonrpc": "2.0", "method": "Application.GetProperties", "params": {"properties": ["version", "name"]}, "id": 1 }')
+
+    version = xbmcaddon.Addon('xbmc.addon').getAddonInfo('version')
+    version = version.split('.')
+    return int(version[0]), int(version[1]) #major, minor eg, 13.9.902
+
+
+MAJOR, MINOR = GetXBMCVersion()
+FRODO        = (MAJOR == 12) and (MINOR < 9)
+GOTHAM       = (MAJOR == 13) or (MAJOR == 12 and MINOR == 9)
+HELIX        = (MAJOR == 14) or (MAJOR == 13 and MINOR == 9)
 
 
 def getSetting(param):
     return xbmcaddon.Addon(ADDONID).getSetting(param)
+
+
+def getAdminSetting(param):
+    return xbmcaddon.Addon('plugin.video.thelivebox-admin').getSetting(param)
+
 
 def setSetting(param, value):
     if xbmcaddon.Addon(ADDONID).getSetting(param) == value:
@@ -68,7 +102,7 @@ GETTEXT   = ADDON.getLocalizedString
 BOOTVIDEO = getSetting('BOOTVIDEO') == 'true'
 
 
-DEBUG = True
+DEBUG = False
 def Log(text):
     try:
         output = '%s V%s : %s' % (TITLE, VERSION, str(text))
@@ -79,6 +113,12 @@ def Log(text):
             xbmc.log(output, xbmc.LOGDEBUG)
     except:
         pass
+
+
+def Notify(message, length=10000):
+    cmd = 'XBMC.notification(%s,%s,%d,%s)' % (TITLE, message, length, ICON)
+    xbmc.executebuiltin(cmd)
+
 
 
 def DialogOK(line1, line2='', line3=''):
@@ -95,7 +135,7 @@ def DialogYesNo(line1, line2='', line3='', noLabel=None, yesLabel=None):
         return d.yesno(TITLE + ' - ' + VERSION, line1, line2 , line3, noLabel, yesLabel) == True
 
 
-def CheckVersion():
+def checkVersion():
     prev = getSetting('VERSION')
     curr = VERSION
 
@@ -104,11 +144,13 @@ def CheckVersion():
 
     setSetting('VERSION', curr)
 
+    if curr == '1.0.0.4':
+        setSetting('SKIN', 'Thumbnails')
+
     #DialogOK(GETTEXT(30004), GETTEXT(30005), GETTEXT(30006))
+    
 
-
-
-def GetAddonMessage(addr, port, msg, params = {}):
+def GetAddonMessage(addr, port, msg, params = {}, timeout=60):
     try:
         req = ''
 
@@ -117,7 +159,7 @@ def GetAddonMessage(addr, port, msg, params = {}):
 
         req = 'plugin://plugin.video.thelivebox/?mode=%d%s' % (msg, req)
 
-        resp = GetJSON(addr, port, urllib.quote_plus(req))
+        resp = GetJSON(addr, port, urllib.quote_plus(req), timeout=timeout)
 
         result  = resp['result']
         return result['files'][0]['label']
@@ -126,7 +168,12 @@ def GetAddonMessage(addr, port, msg, params = {}):
         pass
 
 
-def GetJSON(addr, port, params):
+def ClearCache():
+    import cache
+    cache.clearCache()
+
+
+def GetJSON(addr, port, params, timeout=60):
     import json as simplejson 
     import urllib2
 
@@ -134,8 +181,10 @@ def GetJSON(addr, port, params):
     host   = '%s:%s' % (addr, str(port))
 
     url  = 'http://%s/jsonrpc?request={"jsonrpc":"2.0","method":"%s","params":{"directory":"%s"},"id":1}' % (host, method, params)
+
     req  = urllib2.Request(url)
-    resp = urllib2.urlopen(req, timeout=5).read()
+    resp = urllib2.urlopen(req, timeout=timeout).read()
+
     resp = simplejson.loads(resp) 
     return resp
 
@@ -197,13 +246,19 @@ def Launch(param=None):
     xbmc.executebuiltin(cmd) 
 
 
+def IsServer():
+    #currently ignore server mode and always return True
+    return True
+    return getSetting('HOST_MODE') == '0'
+
+
 def GetHost():
     import network
 
     if getSetting('FALLBACK').lower() == 'true':
         return network.getLocalHost()
 
-    if getSetting('HOST_MODE') == '0':
+    if IsServer():
         return network.getLocalHost()
 
     if getSetting('SERVER_MODE') == '0':
@@ -230,8 +285,20 @@ def GetText(title, text='', hidden=False, allowEmpty=False):
     return text
 
 
+def VerifyPassword():
+    if xbmcaddon.Addon('plugin.video.thelivebox-admin').getSetting('REQ_PASS').lower() != 'true':
+        return True
+
+    pwd = GetText(GETTEXT(30051), hidden=True)
+
+    if not pwd:
+        return False
+
+    return pwd == GetPassword()
+
+
 def GetPassword():
-    return xbmcaddon.Addon('plugin.video.thelivebox-admin').getSetting('PASSWORD')
+    return getAdminSetting('PASSWORD')
 
 
 def enableWebserver():
@@ -295,4 +362,115 @@ def getKodiSetting(setting):
     return None
 
 
+def isAmazonPlayable(folder):
+    folders, files = s3.getFolder(folder)
 
+    for file in files:
+        if isFilePlayable(file):
+            return True
+
+    for fold in folders:
+        if isAmazonPlayable(fold):
+            return True
+
+    return False
+
+
+def isFilePlayable(path):
+    try:
+        ext = '.' + path.rsplit('.')[-1]
+        return ext in PLAYABLE
+    except:
+        pass
+
+    return False
+
+
+def isPlayable(path):
+    if not sfile.exists(path):
+        return False
+
+    if sfile.isfile(path):
+        playable = isFilePlayable(path)
+        return playable
+         
+    current, dirs, files = sfile.walk(path)
+
+    for file in files:
+        if isPlayable(os.path.join(current, file)):
+            return True
+
+    for dir in dirs:        
+        if isPlayable(os.path.join(current, dir)):
+            return True
+
+    return False
+
+
+def getExternalDrive():
+    return getSetting('EXT_DRIVE')
+
+
+def parseFolder(folder, root=None, recurse=True):
+    items = []
+
+    if not folder:
+        folder = getExternalDrive()
+        if isPlayable(folder):
+            items.append([root, folder, False, True])
+        return items
+
+    current, dirs, files = sfile.walk(folder)
+
+    for dir in dirs:        
+        path = os.path.join(current, dir)
+        if dir.endswith('_PLAYALL'):
+            items.append([dir.rsplit('_PLAYALL', 1)[0], path, True, True])
+        elif isPlayable(path):
+            items.append([dir, path, False, True])
+
+    for file in files:
+        path = os.path.join(current, file)
+        if isPlayable(path):
+            items.append([file.rsplit('.', 1)[0], path, True, False])
+
+    return items
+
+
+def removePartFiles():
+    folder = os.path.join(PROFILE, 'local')
+
+    current, dirs, files = sfile.walk(folder)
+
+    for file in files:
+        if file.endswith('.part'):
+            file = os.path.join(current, file)
+            sfile.remove(file)
+            sfile.remove(file.rsplit('.part', 1)[0])
+
+
+def verifySource():
+    input  = '<source><name>Livebox Cache</name><path pathversion="1">special://userdata/addon_data/script.video.thelivebox/</path></source></video>'
+    source = os.path.join('special://userdata', 'sources.xml')
+    if sfile.exists(source):
+        contents = sfile.read(source)
+        if 'Livebox Cache' in contents:
+            Log('Source already exists')
+            return True
+        Log('Updating sources')
+        contents = contents.replace('</video>', input)
+    else:
+        Log('Creating sources.xml file')
+        contents = '<sources><video><default pathversion="1"></default>%s</sources>' % input
+
+    source = sfile.file(source, 'w')
+    source.write(contents)
+    source.close()
+
+    return False
+
+
+def systemUpdated(line1=None, line2='', line3=''):
+    if line1:
+        DialogOK(line1, line2, line3)
+    xbmc.executebuiltin('RestartApp')

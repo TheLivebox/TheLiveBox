@@ -20,6 +20,7 @@
 
 import xbmcgui
 
+
 if __name__ == '__main__':
     xbmcgui.Window(10000).setProperty('LB_RESTART_SCAN', 'True')
 

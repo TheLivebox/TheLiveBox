@@ -32,6 +32,7 @@ import urllib
 import threading
 
 
+import sfile
 import utils
 import favourite
 
@@ -52,11 +53,11 @@ VIDEOWINDOW = 3010
 LISTBACK  = -999
 
 GETTEXT = utils.GETTEXT
+FRODO   = utils.FRODO
        
 
 class Application(xbmcgui.WindowXML):
     def __new__(cls, addonID):
-        #skin = xbmcaddon.Addon(addonID).getSetting('SKIN')
         skin = utils.getSetting('SKIN')
         path = os.path.join(xbmcaddon.Addon(addonID).getAddonInfo('path'), 'resources', 'skins', skin)
         return super(Application, cls).__new__(cls, 'main.xml', path)
@@ -78,10 +79,18 @@ class Application(xbmcgui.WindowXML):
         self.faves           = str(favourite.getFavourites())
         self.fullScreenCount = 0
         self.footerCount     = 0
-        self.setProperty('LB_FOOTER',  'Powered by SWIFT - Spoyser Windows Interface Framework Technology')
+        self.externalDrive   = sfile.exists(utils.getExternalDrive())
+        self.window          = -1
+
+        self.setProperty('LB_FOOTER',  'Powered by SWIFT')
 
 
     def onInit(self): 
+        self.clearList()
+
+        if self.window < 0:
+            self.window = xbmcgui.getCurrentWindowId()
+
         if self.start:            
             self.lists.append([]) 
             start      = self.start
@@ -141,11 +150,16 @@ class Application(xbmcgui.WindowXML):
 
     def onTimer(self):
         self.footerCount += 1
-        if self.footerCount == 10:
+        if self.footerCount == 5:
             self.clearProperty('LB_FOOTER')
 
-        fullscreen = xbmc.getCondVisibility('VideoPlayer.IsFullscreen') == 1
-        isPaused   = xbmc.getCondVisibility('Player.Paused') == 1
+        #fullscreen = xbmc.getCondVisibility('VideoPlayer.IsFullscreen') == 1
+        #isPaused   = xbmc.getCondVisibility('Player.Paused') == 1
+
+        externalDrive = sfile.exists(utils.getExternalDrive())
+        if self.externalDrive <> externalDrive:
+            self.externalDrive = externalDrive
+            self.doRefresh()
 
         #don't show logo for now
         #if fullscreen and not isPaused:
@@ -156,20 +170,33 @@ class Application(xbmcgui.WindowXML):
         self.resetTimer()
 
 
+    def doRefresh(self):
+        self.lists = []
+        xbmc.sleep(1000)
+        xbmc.executebuiltin('activatewindow(%s)' % self.window)
+
+
+    def doRelaunch(self):
+        utils.Launch()
+        self.close()
+
+
     def checkSkin(self):
         skin = utils.getSetting('SKIN')
 
         if self.skin == skin:
-            self.inCheckSkin = False
-            return
-
-        #if utils.DialogYesNo(GETTEXT(30023), GETTEXT(30024), GETTEXT(30025)) == 0:
-        #    return
+            return        
 
         self.skin = skin
 
-        utils.Launch()
-        self.close()
+        self.doRelaunch()
+
+
+    def checkExternal(self, ext_drive):
+        if ext_drive == utils.getExternalDrive():
+            return
+
+        self.doRefresh()
 
 
     def onFocus(self, controlId):
@@ -222,17 +249,14 @@ class Application(xbmcgui.WindowXML):
 
 
     def verifyClose(self):
-        pwd = utils.GetText(GETTEXT(30051), hidden=True)
-
-        if not pwd:
-            return False
-
-        return pwd == utils.GetPassword()
+        return utils.VerifyPassword()
 
 
     def onBack(self): 
         if len(self.lists) == 1:
             if not self.verifyClose():
+                utils.DialogOK(utils.GETTEXT(30054))
+                self.doRefresh()
                 return
 
         self.lists.pop()
@@ -348,16 +372,17 @@ class Application(xbmcgui.WindowXML):
 
             
     def clearList(self): 
-        #xbmcgui.WindowXML.clearList(self)  
-        
-        #calling xbmcgui.WindowXML.clearList(self)
-        #sometimes crashes XBMC
-        #this doesn't crash, but is very slow on low spec hardware
-        #see http://trac.xbmc.org/ticket/14780
-        self.showControl(MAINGROUP, False)      
-        for i in range(self.getListSize(), 0, -1):            
-            self.removeItem(i-1)
-        self.showControl(MAINGROUP, True)
+        if FRODO:
+            #calling xbmcgui.WindowXML.clearList(self)
+            #sometimes crashes XBMC
+            #see http://trac.xbmc.org/ticket/14780
+            self.showControl(MAINGROUP, False)      
+            for i in range(self.getListSize(), 0, -1):            
+                self.removeItem(i-1)
+            self.showControl(MAINGROUP, True)
+            return
+
+        xbmcgui.WindowXML.clearList(self)  
 
 
     def getSTDMenu(self, liz):
@@ -523,7 +548,7 @@ class Application(xbmcgui.WindowXML):
                 liz.setInfo(type='', infoLabels=infoLabels)
                 #each infolabel is set as a property, this allow user-defined infoLabels
                 #that can be accessed in the skin xml via: $INFO[Window.Property(USERDEFINED)]
-                for item in infoLabels:                   
+                for item in infoLabels:     
                     liz.setProperty(item, infoLabels[item])
 
             self.addItem(liz)  
@@ -532,13 +557,14 @@ class Application(xbmcgui.WindowXML):
          
 
     def onParams(self, params, isFolder=True):
+        ext_drive = utils.getExternalDrive()
         if isFolder:
             self.newList() 
             #store params as first item in list
             self.list.append(params)
             if self.showBack:
                 #add the '..' item
-                self.addDir('..', LISTBACK, image='DefaultFolderBack.png', contextMenu=[('Add-on settings', 'STD:SETTINGS')], replaceItems=True)
+                self.addDir('Previous menu', LISTBACK, image='DefaultFolderBack.png', contextMenu=[('Add-on settings', 'STD:SETTINGS')], replaceItems=True)
 
         #call into the "real" addon
         if isFolder:
@@ -550,6 +576,7 @@ class Application(xbmcgui.WindowXML):
             self.addItems(self.list)
 
         self.checkSkin()
+        self.checkExternal(ext_drive)
 
             
     def setResolvedUrl(self, url, success=True, listItem=None, windowed=False):
@@ -559,7 +586,14 @@ class Application(xbmcgui.WindowXML):
             if not listItem:
                 listItem = xbmcgui.ListItem(url)
 
+            if self.skin == 'Thumbnails':
+                windowed = False
+            if self.skin == 'Thumbnails + Zoom':
+                windowed = False
+
+            type = xbmc.PLAYER_CORE_AUTO
+
             pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
             pl.clear()
             pl.add(url, listItem)
-            xbmc.Player().play(pl, windowed=windowed)
+            xbmc.Player(type).play(pl, windowed=windowed)

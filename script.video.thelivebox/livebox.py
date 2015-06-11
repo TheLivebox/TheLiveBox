@@ -38,17 +38,23 @@ ICON   = utils.ICON
 FANART = utils.FANART
 
 
-VIDEO_ADDON = utils.VIDEO_ADDON
-VIDEO_LOCAL = utils.VIDEO_LOCAL
-CLEARCACHE  = utils.CLEARCACHE
-SETTINGS    = utils.SETTINGS
-WAITING     = utils.WAITING
-EXAM        = utils.EXAM
-DEMO        = utils.DEMO
+VIDEO_ADDON           = utils.VIDEO_ADDON
+SERVER_FILE           = utils.SERVER_FILE
+LOCAL_FILE            = utils.LOCAL_FILE
+SETTINGS              = utils.SETTINGS
+CLEARCACHE            = utils.CLEARCACHE
+WAITING               = utils.WAITING
+EXAM                  = utils.EXAM
+DEMO                  = utils.DEMO
+SERVER_FOLDER         = utils.SERVER_FOLDER
+LOCAL_FOLDER          = utils.LOCAL_FOLDER
+AMAZON_FILE           = utils.AMAZON_FILE
+AMAZON_FOLDER         = utils.AMAZON_FOLDER
+LOCAL_PLAYABLE_FOLDER = utils.LOCAL_PLAYABLE_FOLDER
 
-SERVER      = utils.SERVER
-LBVERSION   = utils.LBVERSION
-ADDRESS     = utils.ADDRESS
+SERVER          = utils.SERVER
+LBVERSION       = utils.LBVERSION
+ADDRESS         = utils.ADDRESS
 
 
 GETTEXT = utils.GETTEXT
@@ -68,19 +74,19 @@ def SetResolvedUrl(url, success=True, listItem=None, windowed=True):
     APPLICATION.setResolvedUrl(url, success=success, listItem=listItem, windowed=windowed)
 
 
-def GetJSON(params):
+def GetJSON(params, timeout):
     addr, port = utils.GetHost()
 
     try:
-        return utils.GetJSON(addr, port, params)
+        return utils.GetJSON(addr, port, params, timeout)
     except:
         pass
 
     return {}
 
 
-def GetFiles(params):
-    resp = GetJSON(params)
+def GetFiles(params, timeout):
+    resp = GetJSON(params, timeout)
         
     if 'result' not in resp:
         return []
@@ -105,9 +111,12 @@ def ParseListItem(item):
     return [index, name, mode, url, image, fanart, isFolder, isPlayable, desc]
 
 
-def GetListItems(params):
+def GetListItems(params, timeout=60):
     list = []
-    files = GetFiles(params)
+    files = GetFiles(params, timeout)
+
+    if files == None:
+        return list
 
     for file in files:
         if 'file' in file:
@@ -123,13 +132,21 @@ def GetListItems(params):
 
 
 def PlayVideo(mode, url, title='', image=''):
+    APPLICATION.showBusy()
+
     addr, port = utils.GetHost()
-    url = utils.GetAddonMessage(addr, port, utils.RETRIEVE_URL, {'type':mode, 'url':urllib.quote_plus(url)})
+    url = utils.GetAddonMessage(addr, port, utils.RETRIEVE_URL, {'type':mode, 'url':urllib.quote_plus(url), 'server':utils.IsServer()}, timeout=60)
+
+    APPLICATION.closeBusy()
     
     if len(url) == 0:
-        return NoPlay('Empty URL obtained in PlayAddonVideo')
- 
-    img   = image
+        return NoPlay('Empty URL obtained in PlayVideo')
+
+    PlayResolvedVideo(mode, url, title, image)
+
+
+def PlayResolvedVideo(mode, url, title='', image=''):
+    img = image
     if len(img) == 0:
         img = ICON
 
@@ -139,19 +156,17 @@ def PlayVideo(mode, url, title='', image=''):
 
     repeatMode = GetRepeatMode()
 
-
     liz = xbmcgui.ListItem(label, iconImage=img, thumbnailImage=img)
 
     liz.setInfo(type='Video', infoLabels={'Title': label})
 
     windowed = utils.getSetting('PLAYBACK') == '1'
 
-    if mode == VIDEO_ADDON:
+    if mode == VIDEO_ADDON or mode == LOCAL_FILE:
         PlayAddonVideo(url, liz, windowed)
 
-    if mode == VIDEO_LOCAL:
-        PlayLocalVideo(url, liz, windowed)
-
+    if mode == SERVER_FILE or mode == AMAZON_FILE:
+        PlayServerVideo(url, liz, windowed)
 
     xbmc.executebuiltin('PlayerControl(%s)' % repeatMode)
         
@@ -160,26 +175,71 @@ def PlayAddonVideo(url, liz, windowed):
     APPLICATION.setResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
 
 
-def PlayLocalVideo(url, liz, windowed):
-    addr, port = utils.GetHost()
+def PlayServerVideo(url, liz, windowed):
+    if url.startswith('http'):
+        pass
+    else:
+        addr, port = utils.GetHost()
 
-    url = urllib.quote_plus(url)
-    url = 'http://%s:%d/vfs/%s' % (addr, port, url)
+        url = urllib.quote_plus(url)
+        url = 'http://%s:%d/vfs/%s' % (addr, port, url)
     
     utils.Log('Playback URL %s' % url)
     
     APPLICATION.setResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
 
 
-def DoMainList():
+def getGlobalMenu():
     menu = []
     menu.append((GETTEXT(30020), '?mode=%d' % SETTINGS))
+    return menu
 
-    list = GetListItems('plugin://plugin.video.thelivebox/?mode=')
+
+def DoMainList():
+    menu = getGlobalMenu()
+
+    list = GetListItems('plugin://plugin.video.thelivebox/?mode=', timeout=10)
     for item in list:
-        AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], contextMenu=menu, replaceItems=True)
+        mode = item[2]
+        if mode == AMAZON_FILE or mode == AMAZON_FOLDER:
+            pass
+        else:           
+            AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], contextMenu=menu, replaceItems=True)
 
     return len(list) > 0
+
+
+def AddFolderItems(_folder):
+    items = utils.parseFolder(_folder, GETTEXT(30058))
+    if len(items) == 0:
+        return
+
+    browseFolder = utils.GETTEXT(30055)
+    playVideo    = utils.GETTEXT(30056)
+    playFolder   = utils.GETTEXT(30062)
+
+    file   = 'DefaultMovies.png'
+    folder = 'DefaultFolder.png'
+
+    for item in items:
+        label      = item[0]
+        url        = item[1]
+        isPlayable = item[2]
+        isFolder   = item[3]
+
+        if isPlayable:
+            if isFolder:
+                menu = getGlobalMenu()
+                menu.append((GETTEXT(30062), '?mode=%d&url=%s' % (LOCAL_PLAYABLE_FOLDER, url)))
+                AddDir(label, LOCAL_PLAYABLE_FOLDER, url=url, image=file,   isFolder=False, isPlayable=True,  desc=playFolder,   contextMenu=menu, replaceItems=True)
+            else:
+                menu = getGlobalMenu()
+                menu.append((GETTEXT(30063), '?mode=%d&url=%s' % (LOCAL_PLAYABLE_FOLDER, _folder)))
+                AddDir(label, LOCAL_FILE,            url=url, image=file,   isFolder=False, isPlayable=True,  desc=playVideo,    contextMenu=menu, replaceItems=True)
+        else:
+            menu = getGlobalMenu()
+            menu.append((GETTEXT(30062), '?mode=%d&url=%s' % (LOCAL_PLAYABLE_FOLDER, url)))
+            AddDir(label, LOCAL_FOLDER,              url=url, image=folder, isFolder=True,  isPlayable=False, desc=browseFolder, contextMenu=menu, replaceItems=True)
 
 
 def MainList():
@@ -187,36 +247,49 @@ def MainList():
         return
 
     xbmc.sleep(5000)
-    
+
+    #try again
     if DoMainList():
         return
 
-    utils.DialogOK(GETTEXT(30043), GETTEXT(30044))
+    showSettings = False
+    if showSettings:
+        utils.DialogOK(GETTEXT(30043), GETTEXT(30044))
 
-    APPLICATION.addonSettings()
+        APPLICATION.addonSettings()
 
-    if DoMainList():
-        return
+        if DoMainList():
+            return
 
-    utils.DialogOK(GETTEXT(30043), GETTEXT(30052))
+    showFallackMessage = False
+    if showFallackMessage:
+        utils.DialogOK(GETTEXT(30043), GETTEXT(30052))
 
     utils.setSetting('FALLBACK', 'true')
     if DoMainList():
         return
    
-    #name = '[I]%s[/I]' % GETTEXT(30043)
-    #desc = '%s %s' % (GETTEXT(30043), GETTEXT(30044))
-    #mode = 300
-    #AddDir(name, mode, url=None, image=None, fanart=FANART, isFolder=False, isPlayable=False, desc=desc)
-
 
 def GenericList(mode):
     menu = []
     menu.append((GETTEXT(30020), '?mode=%d' % SETTINGS))
 
-    list = GetListItems('plugin://plugin.video.thelivebox/?mode=%d' % mode)
+    list = 'plugin://plugin.video.thelivebox/?mode=%d' % mode
+    list = GetListItems(list)
+
     for item in list:
         AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], contextMenu=menu, replaceItems=True)        
+
+
+def ClearCache():
+    APPLICATION.showBusy()
+    resp = GetJSON('plugin://plugin.video.thelivebox/?mode=%d' % CLEARCACHE, 60)
+    APPLICATION.closeBusy()
+        
+    if 'result' not in resp:
+        return
+
+    utils.DialogOK(GETTEXT(30064))
 
 
 def ExaminationRoom():
@@ -267,6 +340,46 @@ def WaitingRoom():
     xbmc.executebuiltin('PlayerControl(%s)' % repeatMode)
 
 
+def PlayFolder(folder):
+    videos = utils.parseFolder(folder, recurse=False)
+
+    pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
+    pl.clear()  
+
+    isFirst = True
+
+    repeatMode = GetRepeatMode()
+
+    for video in videos:
+        image      = ''
+        title      = video[0]
+        url        = video[1]
+        isPlayable = video[2]
+        isFolder   = video[3]
+
+        if (not isPlayable) or isFolder:
+            continue
+
+        if len(image) == 0:
+            image = ICON
+
+        if len(title) == 0:
+            title = GETTEXT(30000)
+
+        liz = xbmcgui.ListItem(title, iconImage=image, thumbnailImage=image)
+
+        liz.setInfo(type='Video', infoLabels={'Title': title})
+
+        pl.add(url, liz)
+
+        if isFirst:
+            isFirst  = False
+            windowed = utils.getSetting('PLAYBACK') == '1'
+            SetResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
+
+    xbmc.executebuiltin('PlayerControl(%s)' % repeatMode)
+
+
 def GetRepeatMode():
     repeatMode = 'RepeatOff'
     if not utils.DialogYesNo(GETTEXT(30008), GETTEXT(30009), GETTEXT(30010), GETTEXT(30011), GETTEXT(30012)):
@@ -275,6 +388,30 @@ def GetRepeatMode():
     return repeatMode
 
 
+def ParseLocalFolder(url):
+    AddFolderItems(url)
+
+
+def ParseRemoteFolder(url, mode):
+    videos = []
+
+    list = 'plugin://plugin.video.thelivebox/?mode=%d&url=%s' % (mode, urllib.quote_plus(url))
+    list = GetListItems(urllib.quote_plus(list), timeout=120)
+
+    menu = getGlobalMenu()
+
+    for item in list:
+        name       = item[1]
+        mode       = item[2]
+        url        = item[3]
+        image      = item[4]
+        fanart     = item[5]
+        isFolder   = item[6]
+        isPlayable = item[7]
+        desc       = item[8]
+        AddDir(name, mode, url, image, fanart, isFolder, isPlayable, desc, contextMenu=menu, replaceItems=True, infoLabels=None)
+
+          
 def GetVimeoVideos():
     videos = []
 
@@ -285,7 +422,34 @@ def GetVimeoVideos():
     return videos
 
 
+def PatchImage(mode, image):
+    if mode == SERVER_FOLDER:
+        return 'DefaultFolder.png'
+
+    if mode == AMAZON_FOLDER:
+        return 'DefaultFolder.png'
+
+    return image
+
+
+def validateMode(mode, name):
+    if mode == SERVER_FOLDER:
+        if name == GETTEXT(30057):
+            if utils.IsServer():
+                return False
+            if utils.getSetting('FALLBACK').lower() == 'true':
+                return False
+
+    return True
+
+
 def AddDir(name, mode, url=None, image=None, fanart=None, isFolder=False, isPlayable=False, desc='', contextMenu=None, replaceItems=False, infoLabels=None):
+
+    if not validateMode(mode, name):
+        return
+
+    image = PatchImage(mode, image)
+ 
     if not image:
         image = ICON
 
@@ -337,11 +501,12 @@ def main(params):
     try:    mode = int(urllib.unquote_plus(params['mode']))
     except: mode = None
 
-    if mode == VIDEO_ADDON or mode == VIDEO_LOCAL:
-        try:    
-            try:    url   = urllib.unquote_plus(params['url'])
-            except: url = ''
+    try:    url   = urllib.unquote_plus(params['url'])
+    except: url = ''
 
+
+    if mode == VIDEO_ADDON or mode == SERVER_FILE or mode == AMAZON_FILE:
+        try:    
             try:    title = urllib.unquote_plus(params['title'])
             except: title = ''
 
@@ -351,12 +516,42 @@ def main(params):
             PlayVideo(mode, url, title, image)
 
         except Exception, e:
-            utils.Log('Error in VIDEO mode - %s' % str(e))
+            utils.Log('Error in VIDEO mode(%d) - %s' % (mode, str(e)))
+            APPLICATION.closeBusy()            
+
+
+    elif mode == LOCAL_FILE:
+        try:    
+            try:    title = urllib.unquote_plus(params['title'])
+            except: title = ''
+
+            try:    image = urllib.unquote_plus(params['image'])
+            except: image = ''
+            
+            PlayResolvedVideo(mode, url, title, image)
+
+        except Exception, e:
+            utils.Log('Error in LOCAL_FILE mode - %s' % str(e))
+        
+
+    elif mode == SERVER_FOLDER or mode == mode == AMAZON_FOLDER:
+        try:    
+            ParseRemoteFolder(url, mode)
+
+        except Exception, e:
+            utils.Log('Error in SERVER_FOLDER mode(%d) - %s' % (mode, str(e)))
+
+
+    elif mode == LOCAL_FOLDER:
+        try:    
+            ParseLocalFolder(url)
+
+        except Exception, e:
+            utils.Log('Error in LOCAL_FOLDER mode - %s' % str(e))
 
 
     elif mode == CLEARCACHE:
-        import cache
-        cache.clearCache()
+        ClearCache()
 
 
     elif mode == SETTINGS:
@@ -372,8 +567,10 @@ def main(params):
     elif mode == EXAM:
         ExaminationRoom()
 
+
     elif mode == ADDRESS:
         GenericList(ADDRESS)
+
 
     elif mode == SERVER:
         GenericList(SERVER)
@@ -386,17 +583,25 @@ def main(params):
     elif mode == DEMO:
         GenericList(DEMO)
 
+
+    elif mode == LOCAL_PLAYABLE_FOLDER:
+        PlayFolder(url)
+
     else:
         MainList()
+        AddFolderItems('')
+
 
     if utils.getSetting('FALLBACK').lower() == 'true':
         mode = GETTEXT(30053)
-    elif utils.getSetting('HOST_MODE') == '0':
+    elif utils.IsServer():
         mode  = GETTEXT(30046)    
     else:
         mode  = GETTEXT(30045)
 
+
     title = GETTEXT(30000) + ' [COLOR=blue]-[/COLOR] ' + mode
+
 
     APPLICATION.setProperty('LB_TITLE',    title)
     APPLICATION.setProperty('LB_MAINDESC', GETTEXT(30019))

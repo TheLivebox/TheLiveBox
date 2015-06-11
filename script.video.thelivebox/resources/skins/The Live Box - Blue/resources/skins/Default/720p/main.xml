@@ -188,7 +188,7 @@
 					<textureslidernibfocus>lb_ScrollBarNib.png</textureslidernibfocus>
 					<onleft>59</onleft>
 					<onright>3010</onright>                
-					<showonepage>true</showonepage>
+					<showonepage>false</showonepage>
 					<orientation>vertical</orientation>
 				</control> 
 			</control> <!-- MainList Group -->

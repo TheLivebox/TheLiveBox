@@ -22,7 +22,6 @@
 import xbmcvfs
 
 
-
 def exists(filename):
     return xbmcvfs.exists(filename)
 
@@ -66,12 +65,8 @@ def readlines(filename):
 
 
 def walk(folder):
-    dirs, files = xbmcvfs.listdir(folder)
-
-    dirs  = [unicode(f, 'raw_unicode_escape') for f in dirs]
-    files = [unicode(f, 'raw_unicode_escape') for f in files]
-
-    return folder, dirs, files
+    list = xbmcvfs.listdir(folder)
+    return folder, list[0], list[1]
 
 
 def glob(folder):
@@ -88,10 +83,6 @@ def makedirs(path):
 
 
 def remove(filename):
-    return xbmcvfs.delete(filename)
-
-
-def delete(filename):
     return xbmcvfs.delete(filename)
 
 
@@ -129,12 +120,18 @@ def copy(src, dst):
 def rename(src, dst):
     if not exists(src):
         return
+
+    if isdir(src):
+        copytree(src, dst)
+        rmtree(src)
+        return
+
     return xbmcvfs.rename(src, dst)
 
 
 def mtime(filename):
     if not exists(filename):
-        raise 'sfile.mtime error %s does not exists' % filename
+        raise Exception('sfile.mtime error %s does not exists')
 
     status = xbmcvfs.Stat(filename)
     return status.st_mtime()
@@ -142,15 +139,16 @@ def mtime(filename):
 
 def ctime(filename):
     if not exists(filename):
-        raise 'sfile.ctime error %s does not exists' % filename
+        raise Exception('sfile.ctime error %s does not exists')
 
     status = xbmcvfs.Stat(filename)
     return status.st_ctime()
 
 
+
 #def status(filename):
 #    if not exists(filename):
-#        raise 'sfile.status error %s does not exists' % filename
+#        raise Exception('sfile.status error %s does not exists' % filename)
 #
 #    status = xbmcvfs.Stat(filename)
 #    return status

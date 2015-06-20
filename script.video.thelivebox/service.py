@@ -22,8 +22,6 @@ import xbmc
 import xbmcgui
 import network
 
-started = False
-
 import utils
 
 
@@ -32,12 +30,20 @@ import utils
 #    exit()
 
 
+xbmc.executebuiltin('UpdateAddonRepos')
+
+
 utils.enableWebserver()
 utils.removePartFiles()
 utils.checkVersion()
 
 
-if utils.BOOTVIDEO:    
+scanner = network.Scanner()
+scanner.start()
+started = True
+
+
+if utils.BOOTVIDEO:
     utils.SetFanart()
 
     import os
@@ -57,7 +63,6 @@ if utils.BOOTVIDEO:
     while xbmc.Player().isPlayingVideo():
         xbmc.sleep(100)
 
-
     cmd = 'RunAddon(%s)' % utils.ADDONID
     xbmc.executebuiltin(cmd)
 
@@ -67,7 +72,6 @@ def showLiveboxes():
     utils.Log('%d Liveboxes detected:' % len(boxes))
     for box in boxes:
         utils.Log(box)
-
 
 
 while (not xbmc.abortRequested):
@@ -81,6 +85,6 @@ while (not xbmc.abortRequested):
         xbmcgui.Window(10000).clearProperty('LB_RESTART_SCAN')
         scanner.stop()
         started = False
-
+  
 
 scanner.stop()

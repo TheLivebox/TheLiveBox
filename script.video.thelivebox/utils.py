@@ -102,7 +102,7 @@ GETTEXT   = ADDON.getLocalizedString
 BOOTVIDEO = getSetting('BOOTVIDEO') == 'true'
 
 
-DEBUG = False
+DEBUG = True
 def Log(text):
     try:
         output = '%s V%s : %s' % (TITLE, VERSION, str(text))
@@ -200,11 +200,11 @@ def GetClient():
     if len(client) > 0:
         return client
 
-    DialogOK(GETTEXT(30001), GETTEXT(30002), GETTEXT(30003))
+    #DialogOK(GETTEXT(30001), GETTEXT(30002), GETTEXT(30003))
 
-    ADDON.openSettings()
+    #ADDON.openSettings()
 
-    client = getSetting('CLIENT')
+    #client = getSetting('CLIENT')
     return client
 
 
@@ -289,9 +289,9 @@ def VerifyPassword():
     if xbmcaddon.Addon('plugin.video.thelivebox-admin').getSetting('REQ_PASS').lower() != 'true':
         return True
 
-    pwd = GetText(GETTEXT(30051), hidden=True)
+    pwd = GetText(GETTEXT(30051), hidden=True, allowEmpty=True)
 
-    if not pwd:
+    if pwd == None:
         return False
 
     return pwd == GetPassword()
@@ -474,3 +474,4 @@ def systemUpdated(line1=None, line2='', line3=''):
     if line1:
         DialogOK(line1, line2, line3)
     xbmc.executebuiltin('RestartApp')
+ 

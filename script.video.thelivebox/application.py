@@ -66,7 +66,6 @@ class Application(xbmcgui.WindowXML):
     def __init__(self, addonID):        
         super(Application, self).__init__()  
         self.ADDONID         = addonID
-        self.ADDON           = xbmcaddon.Addon(self.ADDONID)
         self.skin            = utils.getSetting('SKIN')
         self.properties      = {}        
         self.lists           = []
@@ -78,18 +77,16 @@ class Application(xbmcgui.WindowXML):
         self.timer           = None
         self.faves           = str(favourite.getFavourites())
         self.fullScreenCount = 0
-        self.footerCount     = 0
-        self.externalDrive   = sfile.exists(utils.getExternalDrive())
-        self.window          = -1
+        self.counter         = 0
+        self.listSize        = -1
+        self.relaunchCount   = 5
+        self.relaunch        = False
 
         self.setProperty('LB_FOOTER',  'Powered by SWIFT')
 
 
     def onInit(self): 
         self.clearList()
-
-        if self.window < 0:
-            self.window = xbmcgui.getCurrentWindowId()
 
         if self.start:            
             self.lists.append([]) 
@@ -149,34 +146,33 @@ class Application(xbmcgui.WindowXML):
 
 
     def onTimer(self):
-        self.footerCount += 1
-        if self.footerCount == 5:
+        self.counter += 1
+
+        if (self.counter % 5) == 0:
+            utils.Log(xbmcaddon.Addon(self.ADDONID).getAddonInfo('version'))            
+
+        if self.counter == 5:
             self.clearProperty('LB_FOOTER')
 
-        #fullscreen = xbmc.getCondVisibility('VideoPlayer.IsFullscreen') == 1
-        #isPaused   = xbmc.getCondVisibility('Player.Paused') == 1
+        if xbmc.Player().isPlayingVideo():
+            self.relaunchCount = 5
+        else:
+            self.relaunchCount -= 1
 
-        externalDrive = sfile.exists(utils.getExternalDrive())
-        if self.externalDrive <> externalDrive:
-            self.externalDrive = externalDrive
-            self.doRefresh()
-
-        #don't show logo for now
-        #if fullscreen and not isPaused:
-        #    self.showOSD()
-        #else:
-        #    self.closeOSD()
+        if (self.relaunch) or ((self.relaunchCount < 0) and (self.listSize <> self.getListSize())):
+            self.doRelaunch()
+            return
 
         self.resetTimer()
 
 
     def doRefresh(self):
-        self.lists = []
-        xbmc.sleep(1000)
-        xbmc.executebuiltin('activatewindow(%s)' % self.window)
+        self.newList()
+        self.onBack()         
 
 
     def doRelaunch(self):
+        self.stopTimer()
         utils.Launch()
         self.close()
 
@@ -187,16 +183,9 @@ class Application(xbmcgui.WindowXML):
         if self.skin == skin:
             return        
 
-        self.skin = skin
-
-        self.doRelaunch()
-
-
-    def checkExternal(self, ext_drive):
-        if ext_drive == utils.getExternalDrive():
-            return
-
-        self.doRefresh()
+        self.skin          = skin
+        self.relaunch      = True
+        self.relaunchCount = True
 
 
     def onFocus(self, controlId):
@@ -321,6 +310,7 @@ class Application(xbmcgui.WindowXML):
         
         
     def showBusy(self):
+        #xbmc.executebuiltin('Dialog.Show(busydialog)')
         self.busy = xbmcgui.WindowXMLDialog('DialogBusy.xml', '')
         self.busy.show()
         progress = self.getProgress()
@@ -329,6 +319,7 @@ class Application(xbmcgui.WindowXML):
         
         
     def closeBusy(self):    
+        #xbmc.executebuiltin('Dialog.Close(busydialog)')
         if self.busy:
             self.busy.close()
             self.busy = None
@@ -404,7 +395,7 @@ class Application(xbmcgui.WindowXML):
     def trySTDMenu(self, params):
 
         if params == 'STD:SETTINGS':
-            self.addonSettings()
+            self.addonSettings()            
             return
 
         if params == 'STD:ADDFAVOURITE':
@@ -446,6 +437,8 @@ class Application(xbmcgui.WindowXML):
 
     def addonSettings(self):
         xbmcaddon.Addon(self.ADDONID).openSettings()
+        self.relaunch      = True
+        self.relaunchCount = True
         return True
         
         
@@ -553,11 +546,11 @@ class Application(xbmcgui.WindowXML):
 
             self.addItem(liz)  
 
-        self.showControl(MAINGROUP, True)            
+        self.showControl(MAINGROUP, True) 
+        self.listSize = self.getListSize()
          
 
     def onParams(self, params, isFolder=True):
-        ext_drive = utils.getExternalDrive()
         if isFolder:
             self.newList() 
             #store params as first item in list
@@ -576,7 +569,6 @@ class Application(xbmcgui.WindowXML):
             self.addItems(self.list)
 
         self.checkSkin()
-        self.checkExternal(ext_drive)
 
             
     def setResolvedUrl(self, url, success=True, listItem=None, windowed=False):

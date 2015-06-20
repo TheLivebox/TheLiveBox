@@ -1,3 +1,9 @@
+v1.0.0.6
+    - administrator password setting is now disabled by default
+    - check for updates on startup
+    - removed need for clientID
+
+
 v1.0.0.5
     - disabled client functionality
     - external drive browsing - currently set via settings page

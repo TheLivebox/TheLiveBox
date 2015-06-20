@@ -119,14 +119,22 @@ def getGlobalMenu():
     
 
 def MainList(client):    
+    hasClient = len(client) > 0
+
     menu = getGlobalMenu()
 
     AddDir(0, '[I]%s[/I]' % GETTEXT(30020), SETTINGS,   isFolder=False, isPlayable=False, desc=GETTEXT(30021), contextMenu=menu)
     AddDir(1, '[I]%s[/I]' % GETTEXT(30007), CLEARCACHE, isFolder=False, isPlayable=False, desc=GETTEXT(30018), contextMenu=menu)
-    AddDir(2, GETTEXT(30026),               WAITING,    isFolder=False, isPlayable=True,  desc=GETTEXT(30028), contextMenu=menu)
-    AddDir(3, GETTEXT(30027),               EXAM,       isFolder=True,  isPlayable=False, desc=GETTEXT(30029), contextMenu=menu)
 
-    #AddAmazonItems(4, '', menu)
+    if hasClient:
+        AddDir(2, GETTEXT(30026),           WAITING,    isFolder=False, isPlayable=True,  desc=GETTEXT(30028), contextMenu=menu)
+
+    if hasClient:
+        AddDir(3, GETTEXT(30027),           EXAM,       isFolder=True,  isPlayable=False, desc=GETTEXT(30029), contextMenu=menu)
+
+    if hasClient:
+        AddAmazonItems(4, '', menu)
+
     AddFolderItems(5, '', menu)
 
     #if utils.getSetting('DEMO') == 'true':
@@ -451,8 +459,8 @@ def refresh():
 
 def main():
     client = utils.GetClient()
-    if len(client) < 1:
-        return
+    #if len(client) < 1:
+    #    return
         
     doRefresh = False
 

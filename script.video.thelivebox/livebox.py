@@ -198,10 +198,11 @@ def getGlobalMenu():
 def DoMainList():
     menu = getGlobalMenu()
 
-    list = GetListItems('plugin://plugin.video.thelivebox/?mode=', timeout=10)
+    list = GetListItems('plugin://plugin.video.thelivebox/?mode=', timeout=60)
     for item in list:
         mode = item[2]
         if mode == AMAZON_FILE or mode == AMAZON_FOLDER:
+        #if False:
             pass
         else:           
             AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], contextMenu=menu, replaceItems=True)
@@ -243,8 +244,12 @@ def AddFolderItems(_folder):
 
 
 def MainList():
-    if DoMainList():
-        return
+    attempts = 0
+    while attempts < 5:
+        attempts += 1
+        if DoMainList():
+            return
+        xbmc.sleep(100)
 
     xbmc.sleep(5000)
 

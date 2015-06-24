@@ -63,8 +63,8 @@ if utils.BOOTVIDEO:
     while xbmc.Player().isPlayingVideo():
         xbmc.sleep(100)
 
-    cmd = 'RunAddon(%s)' % utils.ADDONID
-    xbmc.executebuiltin(cmd)
+    #cmd = 'RunAddon(%s)' % utils.ADDONID
+    #xbmc.executebuiltin(cmd)
 
 
 def showLiveboxes():

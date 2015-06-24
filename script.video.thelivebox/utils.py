@@ -102,7 +102,7 @@ GETTEXT   = ADDON.getLocalizedString
 BOOTVIDEO = getSetting('BOOTVIDEO') == 'true'
 
 
-DEBUG = True
+DEBUG = False
 def Log(text):
     try:
         output = '%s V%s : %s' % (TITLE, VERSION, str(text))

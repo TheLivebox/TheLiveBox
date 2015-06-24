@@ -1,3 +1,7 @@
+v1.0.0.7
+    - no longer starts addon on bootup
+
+
 v1.0.0.6
     - administrator password setting is now disabled by default
     - check for updates on startup

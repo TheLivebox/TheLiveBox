@@ -102,7 +102,7 @@ GETTEXT   = ADDON.getLocalizedString
 BOOTVIDEO = getSetting('BOOTVIDEO') == 'true'
 
 
-DEBUG = False
+DEBUG = True
 def Log(text):
     try:
         output = '%s V%s : %s' % (TITLE, VERSION, str(text))
@@ -133,6 +133,29 @@ def DialogYesNo(line1, line2='', line3='', noLabel=None, yesLabel=None):
         return d.yesno(TITLE + ' - ' + VERSION, line1, line2 , line3) == True
     else:
         return d.yesno(TITLE + ' - ' + VERSION, line1, line2 , line3, noLabel, yesLabel) == True
+
+def HideCancelButton():
+    xbmc.sleep(250)
+    WINDOW_PROGRESS = xbmcgui.Window(10101)
+    CANCEL_BUTTON   = WINDOW_PROGRESS.getControl(10)
+    CANCEL_BUTTON.setVisible(False)
+
+
+def CompleteProgress(dp, percent):
+    for i in range(percent, 100):
+        dp.update(i)
+        xbmc.sleep(25)
+    dp.close()
+
+
+def DialogProgress(line1, line2='', line3='', hide=False):
+    dp = xbmcgui.DialogProgress()
+    dp.create(TITLE, line1, line2, line3)
+    dp.update(0)
+    if hide:
+        HideCancelButton()
+    return dp
+
 
 
 def checkVersion():
@@ -193,6 +216,13 @@ def SetFanart():
     path = os.path.join(HOME, 'fanart.jpg')
     Execute('Skin.SetBool(UseCustomBackground)')
     Execute('Skin.SetString(%s, %s)' % ('CustomBackgroundPath', path))
+
+
+def SetShortcut():
+    param = 'HomeVideosButton1'
+    value = 'script.video.thelivebox'
+    Execute('Skin.SetString(%s, %s)' % (param, value))
+
 
 
 def GetClient():

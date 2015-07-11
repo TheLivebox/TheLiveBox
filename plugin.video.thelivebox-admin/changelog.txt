@@ -1,3 +1,8 @@
+v1.0.2:
+  - password now disabled by default
+  - removed default password
+  - removed drive setting
+
 v1.0.1:
   - password now required to enter settings
   - password can be disabled

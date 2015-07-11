@@ -23,6 +23,7 @@ import xbmcgui
 import network
 
 import utils
+import checkUpdates
 
 
 #if not utils.verifySource():
@@ -30,21 +31,20 @@ import utils
 #    exit()
 
 
-xbmc.executebuiltin('UpdateAddonRepos')
-
-
 utils.enableWebserver()
 utils.removePartFiles()
-utils.checkVersion()
-
 
 scanner = network.Scanner()
 scanner.start()
 started = True
 
+checkUpdates.checkRepo()
+utils.checkVersion()
+
 
 if utils.BOOTVIDEO:
     utils.SetFanart()
+    utils.SetShortcut()
 
     import os
 

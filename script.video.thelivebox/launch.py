@@ -34,6 +34,9 @@ def main(addonID, param=None):
 
 if __name__ == '__main__':
     addonID  = sys.argv[1]
+
+    while xbmc.getCondVisibility('Window.IsActive(okdialog)') <> 0:
+        xbmc.sleep(100)
    
     if len(sys.argv) == 2:
         main(addonID)

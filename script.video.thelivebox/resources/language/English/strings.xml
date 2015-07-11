@@ -69,4 +69,10 @@
 	<string id="30066">[COLOR springgreen]Check for updates[/COLOR]</string>		
 	<string id="30067">Checking for updates.</string>		
 	<string id="30068">This may take a few minutes.</string>		
+	<string id="30069">Your Livebox software has been updated.</string>
+	<string id="30070">Your Livebox software is up-to-date.</string>
+	<string id="30071">Please wait while your Livebox software updates.</string>
+	<string id="30072">The update process was canceled.</string>
+	<string id="30073">The update process failed, please try again later.</string>
+	<string id="30074">The update process is currently disabled.</string>	
 </strings>

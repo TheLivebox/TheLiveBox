@@ -1,3 +1,8 @@
+v1.0.0.8
+    - optimised update process to provide more feedback to user
+    - added shortcut to main screen
+
+
 v1.0.0.7
     - no longer starts addon on bootup
 

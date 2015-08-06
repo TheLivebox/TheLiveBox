@@ -66,6 +66,8 @@ SERVER_FOLDER   = utils.SERVER_FOLDER
 LOCAL_FOLDER    = utils.LOCAL_FOLDER
 AMAZON_FILE     = utils.AMAZON_FILE
 AMAZON_FOLDER   = utils.AMAZON_FOLDER
+UPDATE_FILE_CHK = utils.UPDATE_FILE_CHK
+UPDATE_FILE     = utils.UPDATE_FILE
 
 SERVER           = utils.SERVER
 LBVERSION        = utils.LBVERSION
@@ -123,22 +125,22 @@ def MainList(client):
 
     menu = getGlobalMenu()
 
-    AddDir(0, '[I]%s[/I]' % GETTEXT(30020), SETTINGS,   isFolder=False, isPlayable=False, desc=GETTEXT(30021), contextMenu=menu)
-    AddDir(1, '[I]%s[/I]' % GETTEXT(30007), CLEARCACHE, isFolder=False, isPlayable=False, desc=GETTEXT(30018), contextMenu=menu)
+    AddDir( 0, '[I]%s[/I]' % GETTEXT(30020), SETTINGS,        isFolder=False, isPlayable=False, desc=GETTEXT(30021), contextMenu=menu)
+    AddDir(10, '[I]%s[/I]' % GETTEXT(30007), CLEARCACHE,      isFolder=False, isPlayable=False, desc=GETTEXT(30018), contextMenu=menu)
+    AddDir(20, '[I]%s[/I]' % GETTEXT(30075), UPDATE_FILE_CHK, isFolder=True,  isPlayable=False, desc=GETTEXT(30076), contextMenu=menu)
 
     if hasClient:
-        AddDir(2, GETTEXT(30026),           WAITING,    isFolder=False, isPlayable=True,  desc=GETTEXT(30028), contextMenu=menu)
+        AddDir(30, GETTEXT(30026), WAITING, isFolder=False, isPlayable=True,  desc=GETTEXT(30028), contextMenu=menu)
+        AddDir(40, GETTEXT(30027), EXAM,    isFolder=True,  isPlayable=False, desc=GETTEXT(30029), contextMenu=menu)
 
     if hasClient:
-        AddDir(3, GETTEXT(30027),           EXAM,       isFolder=True,  isPlayable=False, desc=GETTEXT(30029), contextMenu=menu)
+        try:    AddAmazonItems(50, '', menu)
+        except: pass
 
-    if hasClient:
-        AddAmazonItems(4, '', menu)
+    AddFolderItems(100, '', menu)
 
-    AddFolderItems(5, '', menu)
-
-    #if utils.getSetting('DEMO') == 'true':
-    #    AddDir(99, 'Demo',                  DEMO,       isFolder=True,  isPlayable=False, desc='Demo',           contextMenu=menu)
+    if utils.getSetting('DEMO') == 'true':
+        AddDir(999, 'Demo',  DEMO, isFolder=True, isPlayable=False, desc='Demo', contextMenu=menu)
 
 
 def AddAmazonItems(index, folder, menu):
@@ -149,7 +151,7 @@ def AddAmazonItems(index, folder, menu):
     folderImg = 'DefaultFolder.png'
 
     if len(folder) == 0:
-        AddDir(index, utils.GETTEXT(30059), AMAZON_FOLDER, url=utils.GetClient(), image=folderImg, isFolder=True,    isPlayable=False, desc=browseFolder, contextMenu=menu)
+        AddDir(index, utils.GETTEXT(30059), AMAZON_FOLDER, url=utils.GetClient(), image=folderImg, isFolder=True, isPlayable=False, desc=browseFolder, contextMenu=menu)
         return
 
     if not folder.endswith(DELIMETER):
@@ -157,16 +159,26 @@ def AddAmazonItems(index, folder, menu):
 
     folders, files = s3.getFolder(folder)
 
-    for fold in folders:
+    ignore = folder + '_'
+
+    for fold in folders:        
+        if fold.startswith(ignore):
+            continue
+
         if not utils.isAmazonPlayable(fold):
             continue
+
         label = fold.replace(folder, '', 1).replace('_', ' ')
-        AddDir(index, label, AMAZON_FOLDER, url=fold, image=folderImg, isFolder=True,  isPlayable=False,   desc=browseFolder, contextMenu=menu)
+        AddDir(index, label, AMAZON_FOLDER, url=fold, image=folderImg, isFolder=True,  isPlayable=False, desc=browseFolder, contextMenu=menu)
         index += 1
 
-    for file in files:
+    for _file in files:
+        file = _file[0]
+        size = _file[1]
+
         if not utils.isFilePlayable(file):
             continue
+
         label = file.replace(folder, '', 1).replace('_', ' ').rsplit('.', 1)[0]
         AddDir(index, label, AMAZON_FILE, url=file, image=fileImg, isFolder=False, isPlayable=True, desc=playVideo, contextMenu=menu)
         index += 1
@@ -189,7 +201,7 @@ def AddFolderItems(index, folder, menu):
         isPlayable = item[2]
 
         if isPlayable:
-            AddDir(index, label, SERVER_FILE, url=url, image=file,   isFolder=False, isPlayable=True, desc=playVideo,      contextMenu=menu)
+            AddDir(index, label, SERVER_FILE,   url=url, image=file,   isFolder=False, isPlayable=True, desc=playVideo,      contextMenu=menu)
         else:
             AddDir(index, label, SERVER_FOLDER, url=url, image=folder, isFolder=True, isPlayable=False,   desc=browseFolder, contextMenu=menu)
 
@@ -198,12 +210,12 @@ def AddFolderItems(index, folder, menu):
 
 def DemoList():
     root = xbmc.translatePath(os.path.join(utils.HOME, 'resources', 'video'))
-    root = root.replace('storage/emulated/0', 'sdcard')
+    #root = root.replace('storage/emulated/0', 'sdcard')
    
-    AddDir(1, 'Demo Livebox Video', SERVER_FILE, url=os.path.join(root, 'livebox_id_2015.m4v'),isFolder=False,   isPlayable=True,  desc='Play local video')  
+    AddDir(1, 'Demo Livebox Video', SERVER_FILE, url=os.path.join(root, 'livebox_id_2015.m4v'),isFolder=False, isPlayable=True, desc='Play local video')  
 
-    AddDir(100, 'version',   LBVERSION, isFolder=True,  isPlayable=False, desc='Indicate if this instance is a Livebox   server')
-    AddDir(101, 'server',    SERVER,    isFolder=True,  isPlayable=False, desc='Indicate version number of Livebox   server')
+    AddDir(100, 'version',   LBVERSION, isFolder=True,  isPlayable=False, desc='Indicate if this instance is a Livebox server')
+    AddDir(101, 'server',    SERVER,    isFolder=True,  isPlayable=False, desc='Indicate version number of Livebox server')
     AddDir(102, 'address',   ADDRESS,   isFolder=True,  isPlayable=False, desc='Indicate address of this Livebox server')
 
 
@@ -256,6 +268,60 @@ def ExaminationRoom(client):
         fanart = image.replace('_200x150.jpg', '_1200x800.jpg')
         AddDir(index, video[0], VIDEO_ADDON, video[1], image, fanart, isFolder=False, isPlayable=True, contextMenu=menu)       
         index += 1
+
+
+def CheckForVideoUpdates():
+    amzUpdate = '_update' + DELIMETER
+    extDrive  = utils.getExternalDrive()
+    files     = utils.getAllPlayableFiles(extDrive)
+    updates   = s3.getAllFiles(amzUpdate)
+
+    index = 0
+
+    menu = []
+    menu.append((GETTEXT(30020), '?mode=%d' % SETTINGS))
+
+    for key in updates.keys():
+        suffix = GETTEXT(30083)
+        toAdd  = True
+        update = updates[key]
+
+        key = key.replace(amzUpdate, extDrive, 1).replace(DELIMETER, os.sep)
+       
+        if key in files:
+            #check if update is different size
+           
+            current = files[key]
+
+            newSize  = update[1]
+            currSize = current[1]            
+
+            if newSize == currSize:
+                toAdd = False
+
+            src = update[0]
+            dst = current[0]
+
+        else:
+            suffix = GETTEXT(30084)
+            toAdd  = True
+            src    = update[0]
+            dst    = src.replace(amzUpdate, extDrive, 1)
+            
+        if toAdd and utils.isFilePlayable(dst):
+            index += 1
+
+            name = key.rsplit(os.sep)[-1].rsplit('.', 1)[0].replace('_', ' ')
+            src  = urllib.quote_plus(src)
+            dst  = urllib.quote_plus(dst)
+            
+            url  = 'name=%s&src=%s&dst=%s' % (urllib.quote_plus(name), src, dst)
+
+            AddDir(index, name+suffix, UPDATE_FILE, url=url, image='DefaultMovies.png', desc=GETTEXT(30077), contextMenu=None)
+
+    if index == 0:
+        utils.DialogOK(GETTEXT(30078))
+
         
 def GetRepeatMode():
     repeatMode = 'RepeatOff'
@@ -310,13 +376,11 @@ def GetVimeoVideos(html):
     return videos
 
 
-
-def AddDir(index, name, mode, url=None, image=None, fanart=None, isFolder=False, isPlayable=False, desc='',   infoLabels=None, contextMenu=None):
-    if not image:
-        image = ICON
-
+def AddDir(index, name, mode, url=None, image=None, fanart=None, isFolder=False, isPlayable=False, desc='', infoLabels={}, contextMenu=None):
     if not fanart:
         fanart = FANART
+
+    image = utils.patchImage(mode, image, url, infoLabels)
 
     u  = sys.argv[0] 
     u += '?mode='  + str(mode)
@@ -348,9 +412,9 @@ def AddDir(index, name, mode, url=None, image=None, fanart=None, isFolder=False,
     info += '&index='      + str(index)
     info += '&name='       + name
     info += '&mode='       + str(mode)
-    info += '&image='      + image
-    info += '&fanart='     + fanart
-    info += '&desc='       + (desc if desc else '')
+    info += '&image='      + (urllib.quote_plus(image)  if image else '')
+    info += '&fanart='     + (urllib.quote_plus(fanart) if fanart else '')
+    info += '&desc='       + (urllib.quote_plus(desc)   if desc else '')
     info += '&isFolder='   + str(isFolder)
     info += '&url='        + (urllib.quote_plus(url) if url else '')
     info += '&isPlayable=' + (str(isPlayable) if isPlayable else 'False')
@@ -402,14 +466,23 @@ def RetrieveURL(url, type, isServer):
         AddDir(1, dst, 0)
 
     if type == AMAZON_FILE:
-        dst = urllib.quote_plus(url)
-        dst = os.path.join(root, dst)
+        nfo = url.lower().endswith('.txt') or url.lower().endswith('.nfo')
+        url = urllib.quote_plus(url)
+        dst = os.path.join(root, url)
 
         import download
         url = s3.getURL(url)
-        url = url.replace('thelivebox.s3.amazonaws.com', 'd2blgl3q9xzi92.cloudfront.net')
-        utils.Log('Amazon URL : %s' % url)
+        url = s3.convertToCloud(url)
+        utils.Log('Amazon URL : %s' % url)        
 
+        if nfo:
+            url = utils.GetHTML(url, maxAge=7*86400)
+            url = urllib.quote_plus(url)
+            dst = os.path.join(root, url)
+            url = s3.getURL(url)
+            url = s3.convertToCloud(url)                
+            utils.Log('Real Amazon URL : %s' % url) 
+            
         downloading = sfile.exists(dst+'.part')
 
         if downloading:
@@ -426,11 +499,11 @@ def RetrieveURL(url, type, isServer):
 
         download.download(url, dst)
 
-        if isServer:
-            while sfile.size(dst) == 0:
-                xbmc.sleep(100)
-            AddDir(1, dst, 0)
-            return
+        #if isServer:
+        #    while sfile.size(dst) == 0:
+        #        xbmc.sleep(100)
+        #    AddDir(1, dst, 0)
+        #    return
 
         AddDir(1, url, 0)
 
@@ -555,6 +628,10 @@ def main():
         AddAmazonItems(0, url, getGlobalMenu())
 
 
+    elif mode == UPDATE_FILE_CHK:
+        CheckForVideoUpdates()
+
+
     else:           
         MainList(client)
 
@@ -565,4 +642,5 @@ def main():
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
 
 if __name__ == '__main__': 
-    main()
+    try:    main()
+    except: pass

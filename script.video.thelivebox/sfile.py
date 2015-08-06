@@ -20,10 +20,13 @@
 
 
 import xbmcvfs
+import os
 
 
 def exists(filename):
-    return xbmcvfs.exists(filename)
+    if xbmcvfs.exists(filename):
+        return True
+    return os.path.exists(filename)
 
 
 def isfile(filename):

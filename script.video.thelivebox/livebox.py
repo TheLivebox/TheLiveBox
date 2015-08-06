@@ -51,6 +51,8 @@ LOCAL_FOLDER          = utils.LOCAL_FOLDER
 AMAZON_FILE           = utils.AMAZON_FILE
 AMAZON_FOLDER         = utils.AMAZON_FOLDER
 LOCAL_PLAYABLE_FOLDER = utils.LOCAL_PLAYABLE_FOLDER
+UPDATE_FILE_CHK       = utils.UPDATE_FILE_CHK
+UPDATE_FILE           = utils.UPDATE_FILE
 
 SERVER          = utils.SERVER
 LBVERSION       = utils.LBVERSION
@@ -76,7 +78,7 @@ def SetResolvedUrl(url, success=True, listItem=None, windowed=True):
 
 def GetJSON(params, timeout):
     addr, port = utils.GetHost()
-
+       
     try:
         return utils.GetJSON(addr, port, params, timeout)
     except:
@@ -112,11 +114,12 @@ def ParseListItem(item):
 
 
 def GetListItems(params, timeout=60):
-    list = []
     files = GetFiles(params, timeout)
 
     if files == None:
-        return list
+        return []
+
+    list = []
 
     for file in files:
         if 'file' in file:
@@ -124,7 +127,8 @@ def GetListItems(params, timeout=60):
             params = get_params(file)
             try:    
                 info = urllib.unquote_plus(params['info'])
-                list.append(ParseListItem(get_params(info)))
+                item = ParseListItem(get_params(info))
+                list.append(item)
             except:
                 pass
     list.sort()
@@ -171,8 +175,10 @@ def PlayResolvedVideo(mode, url, title='', image=''):
     xbmc.executebuiltin('PlayerControl(%s)' % repeatMode)
         
 
+
 def PlayAddonVideo(url, liz, windowed):
     APPLICATION.setResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
+
 
 
 def PlayServerVideo(url, liz, windowed):
@@ -199,13 +205,14 @@ def DoMainList():
     menu = getGlobalMenu()
 
     list = GetListItems('plugin://plugin.video.thelivebox/?mode=', timeout=60)
+
     for item in list:
         mode = item[2]
-        if mode == AMAZON_FILE or mode == AMAZON_FOLDER:
-        #if False:
-            pass
-        else:           
-            AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], contextMenu=menu, replaceItems=True)
+        #if mode == AMAZON_FILE or mode == AMAZON_FOLDER:                   
+        #    pass
+        #else:
+        #    AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], contextMenu=menu, replaceItems=True)
+        AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], contextMenu=menu, replaceItems=True)
 
     return len(list) > 0
 
@@ -272,8 +279,7 @@ def MainList():
 
     utils.setSetting('FALLBACK', 'true')
     if DoMainList():
-        return
-   
+        return   
 
 def GenericList(mode):
     menu = []
@@ -385,6 +391,41 @@ def PlayFolder(folder):
     xbmc.executebuiltin('PlayerControl(%s)' % repeatMode)
 
 
+def UpdateFile(url):
+    if not utils.IsServer():
+        return
+
+    import download
+    import s3
+    import sfile
+
+    items = url.split('&')
+    name  = urllib.unquote_plus(items[0].split('=', 1)[-1])
+    src   = urllib.unquote_plus(items[1].split('=', 1)[-1])
+    dst   = urllib.unquote_plus(items[2].split('=', 1)[-1])
+
+    temp  = dst + '.temp'
+
+    url = urllib.quote_plus(src)
+    url = s3.getURL(url)
+    url = s3.convertToCloud(url)
+
+    dp = utils.DialogProgress(GETTEXT(30079) % name)
+    download.doDownload(url, temp, name, dp=dp)
+    dp.close()
+
+    if sfile.exists(temp + '.part'): #if part file exists then download has failed
+        utils.DialogOK(name, utils.GETTEXT(30081))
+        return
+
+    if sfile.exists(temp):
+        sfile.remove(dst)
+        sfile.rename(temp, dst)
+        utils.DialogOK(name, utils.GETTEXT(30082))
+
+        APPLICATION.containerRefresh()
+    
+
 def GetRepeatMode():
     repeatMode = 'RepeatOff'
     if not utils.DialogYesNo(GETTEXT(30008), GETTEXT(30009), GETTEXT(30010), GETTEXT(30011), GETTEXT(30012)):
@@ -397,7 +438,7 @@ def ParseLocalFolder(url):
     AddFolderItems(url)
 
 
-def ParseRemoteFolder(url, mode):
+def ParseRemoteFolder(url, mode):   
     videos = []
 
     list = 'plugin://plugin.video.thelivebox/?mode=%d&url=%s' % (mode, urllib.quote_plus(url))
@@ -427,16 +468,6 @@ def GetVimeoVideos():
     return videos
 
 
-def PatchImage(mode, image):
-    if mode == SERVER_FOLDER:
-        return 'DefaultFolder.png'
-
-    if mode == AMAZON_FOLDER:
-        return 'DefaultFolder.png'
-
-    return image
-
-
 def validateMode(mode, name):
     if mode == SERVER_FOLDER:
         if name == GETTEXT(30057):
@@ -453,14 +484,13 @@ def AddDir(name, mode, url=None, image=None, fanart=None, isFolder=False, isPlay
     if not validateMode(mode, name):
         return
 
-    image = PatchImage(mode, image)
- 
-    if not image:
-        image = ICON
-
     if not fanart:
         fanart = FANART
 
+    infoLabels = {'title':name, 'fanart':fanart, 'description':desc}
+
+    image = utils.patchImage(mode, image, url, infoLabels)
+ 
     u  = ''
     u += '?mode='  + str(mode)
     u += '&title=' + urllib.quote_plus(name)
@@ -470,8 +500,6 @@ def AddDir(name, mode, url=None, image=None, fanart=None, isFolder=False, isPlay
 
     if url:
         u += '&url=' + urllib.quote_plus(url)
-
-    infoLabels = {'title':name, 'fanart':fanart, 'description':desc}
 
     APPLICATION.addDir(name, mode, u, image, isFolder, isPlayable, contextMenu=contextMenu, replaceItems=replaceItems, infoLabels=infoLabels)
 
@@ -498,8 +526,9 @@ def get_params(params):
     return param
 
 
-def refresh():
-    xbmc.executebuiltin('Container.Refresh')
+def onBack(application, params):
+    if params == 'init':
+        application.containerRefresh()
 
 
 def main(params):
@@ -539,7 +568,7 @@ def main(params):
             utils.Log('Error in LOCAL_FILE mode - %s' % str(e))
         
 
-    elif mode == SERVER_FOLDER or mode == mode == AMAZON_FOLDER:
+    elif mode == SERVER_FOLDER or mode == AMAZON_FOLDER:
         try:    
             ParseRemoteFolder(url, mode)
 
@@ -589,13 +618,19 @@ def main(params):
         GenericList(DEMO)
 
 
+    elif mode == UPDATE_FILE_CHK:
+        GenericList(UPDATE_FILE_CHK)
+
+    elif mode == UPDATE_FILE:
+        UpdateFile(url)
+
+
     elif mode == LOCAL_PLAYABLE_FOLDER:
         PlayFolder(url)
 
     else:
         MainList()
         AddFolderItems('')
-
 
     if utils.getSetting('FALLBACK').lower() == 'true':
         mode = GETTEXT(30053)

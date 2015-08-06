@@ -11,16 +11,17 @@
 		<setting id="BOOTVIDEO" type="bool"   label="30017" default="true"/>
 		<setting id="SKIN"      type="select" label="30022" source="../../addons/script.video.thelivebox/resources/skins/" mask="/" default="Thumbnails"/>
 		
-		<setting id="EXT_DRIVE" label="30065" type="folder" default=""/>	
+		<setting id="EXT_DRIVE" label="30065" type="folder" default="/storage/external_storage/sda1/"/>	
 		
-		<setting                label="30066" type="action"  action="RunScript($CWD/checkUpdates.py)" option="close"/>
+		<setting                label="30066" type="action"  action="RunScript($CWD/checkUpdates.py,software)" option=""/>
+		<setting                label="30075" type="action"  action="RunScript($CWD/checkUpdates.py,video)"    option="" visible="false"/>
     </category> 
 		
-	<category label="30041">
+	<category1 label="30041">
 		<setting id="HOST_MODE"   type="enum"      label="30033" lvalues="30034|30035" default="0"/>
 		<setting id="SERVER_MODE" type="enum"      label="30036" lvalues="30037|30038" default="0"           visible="eq(-1,1)"/>
 		<setting id="SERVER_IP"   type="ipaddress" label="30039"                       default="192.168.1.0" visible="eq(-1,1)+eq(-2,1)"/>		
 		<setting id="SERVER_PORT" type="number"    label="30042"                       default="8080"        visible="eq(-2,1)+eq(-3,1)"/>		
 		<setting id="FALLBACK"    type="bool"                                          default="false"       visible="false"/>		
-    </category>
+    </category1>
 </settings>

@@ -39,14 +39,13 @@ CURRENT   = 4
 
 
 def _checkRepo():
-    dbPath = xbmc.translatePath('special://home/userdata/Database')
-    dbPath = os.path.join(dbPath, 'Addons15.db')
+    #return DISABLED
 
     latestChk = getCurrentChecksum()
     if not latestChk:
         return FAILED
 
-    db   = xbmc.translatePath(dbPath)
+    db   = getDB()
     conn = sqlite3.connect(db, timeout = 10, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread = False)
     conn.row_factory = sqlite3.Row
     c = conn.cursor() 
@@ -60,6 +59,14 @@ def _checkRepo():
     c.close()
 
     return updated
+
+
+def getDB():
+    import glob
+    path  = xbmc.translatePath('special://home/userdata/Database')
+    files = glob.glob(os.path.join(path, 'Addons*.db'))
+    files.sort()
+    return files[-1]
 
 
 def checksum(chksum, latestChk):
@@ -131,10 +138,30 @@ def checkComplete(versions):
         utils.Log('In check complete')
         utils.Log('Current version of %s  : %s' % (version[0], current))
         utils.Log('Newer version of %s    : %s' % (version[0], version[1]))
-        if current <> version[1]:
+        if not latest(current, version[1]):
             return False
 
     return True
+
+
+def latest(current, newer):
+    if current == newer:
+        return True
+
+    lenCurrent = len(current.split('.'))
+    lenNewer   = len(newer.split('.'))
+
+    toCompare = min(lenCurrent, lenNewer)
+
+    for i in range(0, toCompare):
+        if current[i] > newer[i]:
+            return True
+
+        if current[i] < newer[i]:
+            return False
+
+    return True
+
 
 def getCurrentVersion(addonID):
     return xbmcaddon.Addon(addonID).getAddonInfo('version')
@@ -171,8 +198,20 @@ def getCurrentChecksum():
     return None
 
 
-def checkRepo():
-    #this method does not report if current
+def checkUpdateVideo():
+    pass
+
+
+def checkRemoveVideo():
+    pass
+
+
+def checkVideo():
+    checkUpdateVideo()
+    checkRemoveVideo()
+
+
+def checkRepo(reportCurrent=False):
     ret = _checkRepo()
 
     utils.Log('checkRepo returned %d' % ret)
@@ -189,23 +228,23 @@ def checkRepo():
     elif ret == FAILED:
         utils.DialogOK(utils.GETTEXT(30073))
 
-
-if __name__ == '__main__': 
-    ret = _checkRepo()
-
-    utils.Log('checkRepo returned %d' % ret)
-
-    if ret == DISABLED:
-        utils.DialogOK(utils.GETTEXT(30074))
-
-    elif ret == UPDATED:
-        utils.DialogOK(utils.GETTEXT(30069))
-
-    elif ret == CURRENT:
+    elif ret == CURRENT and reportCurrent:
         utils.DialogOK(utils.GETTEXT(30070))
 
-    elif ret == CANCELLED:
-        utils.DialogOK(utils.GETTEXT(30072))
+    return ret
 
-    elif ret == FAILED:
-        utils.DialogOK(utils.GETTEXT(30073))
+
+def main():
+    if len(sys.argv) < 2:
+        return
+    
+    option = sys.argv[1]
+
+    if option == 'software':
+        checkRepo(reportCurrent=True)        
+
+    if option == 'video':
+        checkVideo()
+
+if __name__ == '__main__': 
+    main()

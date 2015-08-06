@@ -1,3 +1,16 @@
+v1.0.0.11
+    - added nfo and txt support
+
+
+v1.0.0.10
+    - added source.xml update
+
+
+v1.0.0.9
+    - added thumbnail support
+    - added animated gif support
+    - added update video file functionality
+
 v1.0.0.8
     - optimised update process to provide more feedback to user
     - added shortcut to main screen

@@ -23,13 +23,10 @@ import xbmcgui
 import network
 
 import utils
-import checkUpdates
 
-
-#if not utils.verifySource():
-#    utils.systemUpdated(utils.GETTEXT(30060), utils.GETTEXT(30061))
-#    exit()
-
+if not utils.verifySource():
+    utils.systemUpdated(utils.GETTEXT(30060), utils.GETTEXT(30061))
+    #exit()
 
 utils.enableWebserver()
 utils.removePartFiles()
@@ -38,6 +35,7 @@ scanner = network.Scanner()
 scanner.start()
 started = True
 
+import checkUpdates
 checkUpdates.checkRepo()
 utils.checkVersion()
 

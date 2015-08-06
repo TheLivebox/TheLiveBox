@@ -40,6 +40,8 @@ VERSION = ADDON.getAddonInfo('version')
 ICON    = os.path.join(HOME, 'icon.png')
 FANART  = os.path.join(HOME, 'fanart.jpg')
 
+HOME = HOME.replace('storage/emulated/0', 'sdcard') #for Android
+
 
 VIDEO_ADDON           = 100
 VIDEO_REMOTE          = 200
@@ -55,6 +57,8 @@ LOCAL_FOLDER          = 1100
 AMAZON_FILE           = 1200
 AMAZON_FOLDER         = 1300
 LOCAL_PLAYABLE_FOLDER = 1400
+UPDATE_FILE_CHK       = 1500
+UPDATE_FILE           = 1600
 
 SERVER          = 5100
 LBVERSION       = 5200
@@ -65,8 +69,12 @@ RETRIEVE_URL    = 5400
 DELIMETER = s3.DELIMETER
 
 
-PLAYABLE = xbmc.getSupportedMedia('video') + '|' + xbmc.getSupportedMedia('music')
-PLAYABLE = PLAYABLE.replace('|.zip', '')
+IMG_EXT = ['.jpg', '.png']
+
+
+#PLAYABLE = xbmc.getSupportedMedia('video') + '|' + xbmc.getSupportedMedia('music')
+#PLAYABLE = PLAYABLE.replace('|.zip', '')
+PLAYABLE = 'mp3|mp4|m4v|avi|flv|mpg|mov|txt|nfo'
 PLAYABLE = PLAYABLE.split('|')
 
 
@@ -102,7 +110,7 @@ GETTEXT   = ADDON.getLocalizedString
 BOOTVIDEO = getSetting('BOOTVIDEO') == 'true'
 
 
-DEBUG = True
+DEBUG = False
 def Log(text):
     try:
         output = '%s V%s : %s' % (TITLE, VERSION, str(text))
@@ -137,6 +145,7 @@ def DialogYesNo(line1, line2='', line3='', noLabel=None, yesLabel=None):
 def HideCancelButton():
     xbmc.sleep(250)
     WINDOW_PROGRESS = xbmcgui.Window(10101)
+
     CANCEL_BUTTON   = WINDOW_PROGRESS.getControl(10)
     CANCEL_BUTTON.setVisible(False)
 
@@ -307,6 +316,7 @@ def GetText(title, text='', hidden=False, allowEmpty=False):
     if not kb.isConfirmed():
         return None
 
+
     text = kb.getText().strip()
 
     if (len(text) < 1) and (not allowEmpty):
@@ -396,7 +406,7 @@ def isAmazonPlayable(folder):
     folders, files = s3.getFolder(folder)
 
     for file in files:
-        if isFilePlayable(file):
+        if isFilePlayable(file[0]):
             return True
 
     for fold in folders:
@@ -408,7 +418,7 @@ def isAmazonPlayable(folder):
 
 def isFilePlayable(path):
     try:
-        ext = '.' + path.rsplit('.')[-1]
+        ext = path.rsplit('.')[-1]
         return ext in PLAYABLE
     except:
         pass
@@ -439,6 +449,28 @@ def isPlayable(path):
 
 def getExternalDrive():
     return getSetting('EXT_DRIVE')
+
+
+def getAllPlayableFiles(folder):
+    files = {}
+ 
+    _getAllPlayableFiles(folder, files)
+
+    return files
+
+
+def _getAllPlayableFiles(folder, theFiles):
+    current, dirs, files = sfile.walk(folder)
+
+    for dir in dirs:        
+        path = os.path.join(current, dir)
+        _getAllPlayableFiles(path, theFiles)
+
+    for file in files:
+        path = os.path.join(current, file)
+        if isPlayable(path):
+            size = sfile.size(path)
+            theFiles[path] = [path, size]
 
 
 def parseFolder(folder, root=None, recurse=True):
@@ -496,7 +528,7 @@ def verifySource():
     source = sfile.file(source, 'w')
     source.write(contents)
     source.close()
-
+    
     return False
 
 
@@ -504,4 +536,74 @@ def systemUpdated(line1=None, line2='', line3=''):
     if line1:
         DialogOK(line1, line2, line3)
     xbmc.executebuiltin('RestartApp')
- 
+
+
+def getMD5(value):
+    try:    
+        from hashlib import md5
+        MD5 = md5
+    except: 
+        import md5
+        MD5 = md5.new
+
+    return MD5(value).hexdigest()
+
+
+def patchAmazonImage(mode, image, url, infoLabels):
+    folder = url.rsplit(DELIMETER, 1)[0]
+    files  = s3.getAllFiles(folder, recurse=False)
+    root   = url.rsplit('.', 1)[0]
+
+    for ext in IMG_EXT:            
+        img  = root + ext
+        if img in files:
+
+            img = s3.getURL(urllib.quote_plus(img))
+            gif = s3.getURL(urllib.quote_plus(root + '.gif'))
+
+            #img = s3.convertToCloud(img)
+            #gif = s3.convertToCloud(gif)
+
+            #Kodi incorrectly handles remote gifs therefore download and store locally
+            gifFolder = os.path.join(PROFILE, 'c')
+            filename  = os.path.join(gifFolder, getMD5(url.split('?', 1)[0])) + '.gif'
+
+            if sfile.exists(filename):
+                infoLabels['Gif'] = filename
+            else:               
+                import download
+                resp = download.getResponse(gif, 0, '')
+                if resp:
+                    download.download(gif, filename)
+                    infoLabels['Gif'] = filename   
+                else:
+                    sfile.file(filename, 'w')             
+             
+            return img
+
+    if mode == AMAZON_FOLDER:
+        return 'DefaultFolder.png'
+
+    if mode == AMAZON_FILE:
+        return 'DefaultMovies.png'
+
+
+def patchImage(mode, image, url, infoLabels):
+    if mode == SERVER_FOLDER:
+        return 'DefaultFolder.png'
+
+    if mode == AMAZON_FOLDER or mode == AMAZON_FILE:
+        return patchAmazonImage(mode, image, url, infoLabels)
+        
+    if not image:
+        return ICON
+
+    if image == 'DefaultMovies.png' or image == 'DefaultFolder.png':
+        root = url.rsplit('.', 1)[0]
+        for ext in IMG_EXT:            
+            img  = root + ext
+            if os.path.exists(img):               
+                infoLabels['Gif']  = root + '.gif'
+                return img
+
+    return image 

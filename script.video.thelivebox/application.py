@@ -81,7 +81,6 @@ class Application(xbmcgui.WindowXML):
         self.listSize        = -1
         self.relaunchCount   = 5
         self.relaunch        = False
-
         self.setProperty('LB_FOOTER',  'Powered by SWIFT')
 
 
@@ -114,7 +113,7 @@ class Application(xbmcgui.WindowXML):
             self.onParams(self.start.replace('_Playable', ''), isFolder=False)
             return
 
-        self.resetTimer()
+        #self.resetTimer()
         self.doModal()
 
               
@@ -548,9 +547,13 @@ class Application(xbmcgui.WindowXML):
 
         self.showControl(MAINGROUP, True) 
         self.listSize = self.getListSize()
-         
+
+        if self.timer == None:
+            self.resetTimer()
+  
 
     def onParams(self, params, isFolder=True):
+        self.stopTimer()
         if isFolder:
             self.newList() 
             #store params as first item in list
@@ -565,27 +568,37 @@ class Application(xbmcgui.WindowXML):
         functionality.onParams(self, params)
         self.closeBusy()
 
-        if isFolder:
+        if isFolder:            
             self.addItems(self.list)
+            if len(self.list) < 2:
+                self.onBack()
 
-        self.checkSkin()
+        #self.checkSkin()
+        self.resetTimer()
+
+
+    def containerRefresh(self):
+        self.lists.pop()
+        self.onParams(self.list[0], True)
 
             
     def setResolvedUrl(self, url, success=True, listItem=None, windowed=False):
-        if success and len(url) > 0:         
-            self.fullScreenCount = 0
+        if not success or len(url) == 0:
+            return
+         
+        self.fullScreenCount = 0
 
-            if not listItem:
-                listItem = xbmcgui.ListItem(url)
+        if not listItem:
+            listItem = xbmcgui.ListItem(url)
 
-            if self.skin == 'Thumbnails':
-                windowed = False
-            if self.skin == 'Thumbnails + Zoom':
-                windowed = False
+        if self.skin == 'Thumbnails':
+            windowed = False
+        if self.skin == 'Thumbnails + Zoom':
+            windowed = False
 
-            type = xbmc.PLAYER_CORE_AUTO
+        type = xbmc.PLAYER_CORE_AUTO
 
-            pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
-            pl.clear()
-            pl.add(url, listItem)
-            xbmc.Player(type).play(pl, windowed=windowed)
+        pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
+        pl.clear()
+        pl.add(url, listItem)
+        xbmc.Player(type).play(pl, windowed=windowed)

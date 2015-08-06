@@ -26,8 +26,8 @@ import inspect
 import utils
 import sfile
 
-CHUNK_CACHE = 3
-CHUNK_SIZE  = 1024
+CHUNK_CACHE = 30
+CHUNK_SIZE  = 100
 
 
 def getResponse(url, size, referrer):
@@ -48,7 +48,7 @@ def getResponse(url, size, referrer):
 
 def download(url, dest, title=None):
     if not title:
-        title  = 'XBMC Download'
+        title  = utils.TITLE
                 
     script = inspect.getfile(inspect.currentframe())    
     cmd    = 'RunScript(%s, %s, %s, %s)' % (script, url, dest, title)
@@ -56,12 +56,14 @@ def download(url, dest, title=None):
     xbmc.executebuiltin(cmd)
 
 
-def doDownload(url, dest, title, referrer=''):
+def doDownload(url, dest, title, referrer='', dp=None):
     resp = getResponse(url, 0, referrer)
     
     if not resp:
-        utils.DialogOK(dest, 'Download failed', 'No response from server')
+        utils.DialogOK(title, utils.GETTEXT(30081))
         return
+
+    print resp
 
     try:    content = int(resp.headers['Content-Length'])
     except: content = 0
@@ -73,8 +75,14 @@ def doDownload(url, dest, title, referrer=''):
         utils.Log('Download is resumable')
     
     if content < 1:
-        utils.DialogOK(dest, 'Download failed', 'Unknown filesize')
+        utils.DialogOK(title, utils.GETTEXT(30081))
         return
+
+    import s3
+    dest = dest.replace(s3.DELIMETER, os.sep)
+    
+    folder = dest.rsplit(os.sep, 1)[0]
+    sfile.makedirs(folder)
     
     size = CHUNK_SIZE * CHUNK_SIZE
 
@@ -96,7 +104,7 @@ def doDownload(url, dest, title, referrer=''):
     chunks = []
     
     while True:
-        if xbmc.abortRequested:
+        if xbmc.abortRequested or (dp and dp.iscanceled()):
             f.close()
             sfile.remove(dest)
             sfile.remove(dest+'.part')
@@ -108,6 +116,9 @@ def doDownload(url, dest, title, referrer=''):
         percent = min(100 * downloaded / content, 100)
         if percent >= notify:
             notify += 10
+
+        if dp:
+          dp.update(int(percent), utils.GETTEXT(30079) % title, utils.GETTEXT(30080))
 
         chunk = None
         error = False
@@ -125,7 +136,7 @@ def doDownload(url, dest, title, referrer=''):
                 
                     f.close()
                     utils.Log('%s download complete' % (dest))
-                    sfile.remove(dest+'.part')
+                    sfile.remove(dest+'.part')                    
                     return
 
         except Exception, e:

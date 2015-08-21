@@ -552,10 +552,11 @@ def getMD5(value):
 def patchAmazonImage(mode, image, url, infoLabels):
     folder = url.rsplit(DELIMETER, 1)[0]
     files  = s3.getAllFiles(folder, recurse=False)
-    root   = url.rsplit('.', 1)[0]
+    root   = folder + url.replace(folder, '').rsplit('.', 1)[0]
 
-    for ext in IMG_EXT:            
+    for ext in IMG_EXT: 
         img  = root + ext
+
         if img in files:
 
             img = s3.getURL(urllib.quote_plus(img))
@@ -566,6 +567,7 @@ def patchAmazonImage(mode, image, url, infoLabels):
 
             #Kodi incorrectly handles remote gifs therefore download and store locally
             gifFolder = os.path.join(PROFILE, 'c')
+
             filename  = os.path.join(gifFolder, getMD5(url.split('?', 1)[0])) + '.gif'
 
             if sfile.exists(filename):
@@ -577,7 +579,7 @@ def patchAmazonImage(mode, image, url, infoLabels):
                     download.download(gif, filename)
                     infoLabels['Gif'] = filename   
                 else:
-                    sfile.file(filename, 'w')             
+                    sfile.file(filename, 'w') #create empty file so we don't check again             
              
             return img
 

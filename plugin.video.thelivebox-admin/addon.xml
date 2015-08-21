@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.thelivebox-admin" name="The Live Box Administrator Tools" version="1.0.2" provider-name="The Livebox Network">
+<addon id="plugin.video.thelivebox-admin" name="The Live Box Administrator Tools" version="1.0.3" provider-name="The Livebox Network">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="default.py">
-        <provides>video</provides>
+        <provides></provides>
   </extension>
   <extension point="xbmc.addon.metadata">
     <summary lang="en">Welcome to The Live Box Network!</summary>

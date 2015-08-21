@@ -161,8 +161,16 @@
 							<posy>2</posy>
 							<width>100</width>
 							<height>75</height>
+							<aspectratio>stretch</aspectratio>							
+							<texture>$INFO[Listitem.Icon]</texture>
+						</control> 
+						<control type="image">
+							<posx>2</posx>
+							<posy>2</posy>
+							<width>100</width>
+							<height>75</height>
 							<aspectratio>stretch</aspectratio>
-							<info>ListItem.Icon</info>
+							<texture>$INFO[ListItem.Property(Gif)]</texture>
 						</control> 
 						<control type="image">
 								<posx>0</posx>

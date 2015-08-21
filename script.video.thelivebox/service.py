@@ -24,9 +24,9 @@ import network
 
 import utils
 
-if not utils.verifySource():
-    utils.systemUpdated(utils.GETTEXT(30060), utils.GETTEXT(30061))
-    #exit()
+#if not utils.verifySource():
+#    utils.systemUpdated(utils.GETTEXT(30060), utils.GETTEXT(30061))
+#    exit()
 
 utils.enableWebserver()
 utils.removePartFiles()
@@ -37,6 +37,7 @@ started = True
 
 import checkUpdates
 checkUpdates.checkRepo()
+
 utils.checkVersion()
 
 
@@ -61,8 +62,8 @@ if utils.BOOTVIDEO:
     while xbmc.Player().isPlayingVideo():
         xbmc.sleep(100)
 
-    #cmd = 'RunAddon(%s)' % utils.ADDONID
-    #xbmc.executebuiltin(cmd)
+    cmd = 'RunAddon(%s)' % utils.ADDONID
+    xbmc.executebuiltin(cmd)
 
 
 def showLiveboxes():

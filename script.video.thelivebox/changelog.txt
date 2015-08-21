@@ -1,3 +1,8 @@
+v1.0.0.12
+    - fixed client IDs containing '.'
+    - disabled updating sources.xml
+
+
 v1.0.0.11
     - added nfo and txt support
 

@@ -20,12 +20,12 @@
   </extension>
 </addon>
 
-<addon id="plugin.video.thelivebox-admin" name="The Live Box Administrator Tools" version="1.0.2" provider-name="The Livebox Network">
+<addon id="plugin.video.thelivebox-admin" name="The Live Box Administrator Tools" version="1.0.3" provider-name="The Livebox Network">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="default.py">
-        <provides>video</provides>
+        <provides></provides>
   </extension>
   <extension point="xbmc.addon.metadata">
     <summary lang="en">Welcome to The Live Box Network!</summary>
@@ -81,12 +81,12 @@
     </extension>
 </addon>
 
-<addon id="script.video.thelivebox" name="The Livebox Network" version="1.0.0.11" provider-name="The Livebox Network">
+<addon id="script.video.thelivebox" name="The Livebox Network" version="1.0.0.12" provider-name="The Livebox Network">
     <requires>
         <import addon="xbmc.python" version="2.1.0"/>
 		<import addon="plugin.video.vimeo" version="4.1.1"/>
 		<import addon="plugin.video.thelivebox" version="1.0.0.14"/>
-		<import addon="plugin.video.thelivebox-admin" version="1.0.1"/>
+		<import addon="plugin.video.thelivebox-admin" version="1.0.3"/>
     </requires>
     <extension point="xbmc.python.script" library="default.py">
         <provides>video</provides>

@@ -212,24 +212,31 @@ def checkVideo():
 
 
 def checkRepo(reportCurrent=False):
-    ret = _checkRepo()
-
-    utils.Log('checkRepo returned %d' % ret)
+    ret  = _checkRepo()
+    type = 'unknown'
 
     if ret == DISABLED:
+        type = 'disabled'
         utils.DialogOK(utils.GETTEXT(30074))
 
     elif ret == UPDATED:
+        type = 'updated'
         utils.DialogOK(utils.GETTEXT(30069))
 
     elif ret == CANCELLED:
+        type = 'cancelled'
         utils.DialogOK(utils.GETTEXT(30072))
 
     elif ret == FAILED:
+        type = 'failed'
         utils.DialogOK(utils.GETTEXT(30073))
 
-    elif ret == CURRENT and reportCurrent:
-        utils.DialogOK(utils.GETTEXT(30070))
+    elif ret == CURRENT:
+        type = 'current'
+        if reportCurrent:
+            utils.DialogOK(utils.GETTEXT(30070))
+
+    utils.Log('checkRepo returned %s' % type)
 
     return ret
 

@@ -1,3 +1,6 @@
+v1.0.3:
+   - addon no longer visible to user
+
 v1.0.2:
   - password now disabled by default
   - removed default password

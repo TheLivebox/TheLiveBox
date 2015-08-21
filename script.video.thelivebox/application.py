@@ -79,7 +79,7 @@ class Application(xbmcgui.WindowXML):
         self.fullScreenCount = 0
         self.counter         = 0
         self.listSize        = -1
-        self.relaunchCount   = 5
+        #self.relaunchCount   = 5
         self.relaunch        = False
         self.setProperty('LB_FOOTER',  'Powered by SWIFT')
 
@@ -144,7 +144,7 @@ class Application(xbmcgui.WindowXML):
             pass
 
 
-    def onTimer(self):
+    def onTimer(self):        
         self.counter += 1
 
         if (self.counter % 5) == 0:
@@ -153,14 +153,21 @@ class Application(xbmcgui.WindowXML):
         if self.counter == 5:
             self.clearProperty('LB_FOOTER')
 
-        if xbmc.Player().isPlayingVideo():
-            self.relaunchCount = 5
-        else:
-            self.relaunchCount -= 1
+        #if xbmc.Player().isPlayingVideo():
+        #    self.relaunchCount = 5
+        #else:
+        #    self.relaunchCount -= 1
 
-        if (self.relaunch) or ((self.relaunchCount < 0) and (self.listSize <> self.getListSize())):
+        if (self.relaunch):# or ((self.relaunchCount < 0) and (self.listSize <> self.getListSize())):
             self.doRelaunch()
             return
+
+        if self.listSize <> self.getListSize():
+            if self.getListSize() > 0:
+                print "LISTS"
+                print self.listSize
+                print self.getListSize()
+                self.containerRefresh()
 
         self.resetTimer()
 
@@ -184,7 +191,7 @@ class Application(xbmcgui.WindowXML):
 
         self.skin          = skin
         self.relaunch      = True
-        self.relaunchCount = True
+        #self.relaunchCount = True
 
 
     def onFocus(self, controlId):
@@ -197,9 +204,9 @@ class Application(xbmcgui.WindowXML):
         actionId = action.getId()
         buttonId = action.getButtonCode()
 
-        if actionId != 107:
+        if actionId != 107:            
             utils.Log('onAction actionID %d' % actionId)
-            utils.Log('onAction buttonID %d' % buttonId)
+            utils.Log('onAction buttonID %d' % buttonId)            
 
         if actionId in [ACTION_CONTEXT, ACTION_RCLICK]:
             return self.onContextMenu()
@@ -437,7 +444,7 @@ class Application(xbmcgui.WindowXML):
     def addonSettings(self):
         xbmcaddon.Addon(self.ADDONID).openSettings()
         self.relaunch      = True
-        self.relaunchCount = True
+        #self.relaunchCount = True
         return True
         
         

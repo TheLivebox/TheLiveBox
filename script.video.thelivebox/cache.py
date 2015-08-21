@@ -135,7 +135,7 @@ def purgeCache():
     nFiles = len(files)
 
     try:
-        while nFiles > gCacheSize:            
+        while nFiles > CacheSize:   
             oldestFile = getOldestFile(files)
             path       = os.path.join(CacheDir, oldestFile)
  

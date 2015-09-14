@@ -1,3 +1,7 @@
+v1.0.0.14
+    - version bump for plugin version 1.0.0.16
+
+
 v1.0.0.13
     - folder thumbnails for all Amazon content
     - animated-gifs for all themes

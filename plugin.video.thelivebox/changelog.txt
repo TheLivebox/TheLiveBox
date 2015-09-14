@@ -1,3 +1,6 @@
+v1.0.0.16
+    - bug fix for missing SRC
+
 v1.0.0.15
     - script v1.0.0.13 compatibility
 

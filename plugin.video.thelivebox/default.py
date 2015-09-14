@@ -77,6 +77,7 @@ RETRIEVE_URL     = utils.RETRIEVE_URL
 DELIMETER = utils.DELIMETER
 
 DSC = utils.DSC
+SRC = utils.SRC
 
 GETTEXT = utils.GETTEXT
 URL     = 'https://vimeo.com/channels/%s/videos/rss'

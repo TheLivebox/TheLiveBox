@@ -19,6 +19,7 @@
 #
 
 import xbmc
+import xbmcaddon
 import xbmcgui
 import network
 
@@ -27,6 +28,14 @@ import utils
 #if not utils.verifySource():
 #    utils.systemUpdated(utils.GETTEXT(30060), utils.GETTEXT(30061))
 #    exit()
+
+utils.disableKodiVersionCheck()
+
+utils.updateAdvancedSettings('<loglevel hide="false">-1</loglevel>')
+utils.setKodiSetting('debug.showloginfo',  False) 
+utils.setKodiSetting('debug.extralogging', False) 
+
+xbmcaddon.Addon('plugin.video.vimeo').setSetting('kodion.setup_wizard', 'false')
 
 utils.enableWebserver()
 utils.removePartFiles()
@@ -66,11 +75,54 @@ if utils.BOOTVIDEO:
     xbmc.executebuiltin(cmd)
 
 
+#------------------------------------------------------------------------
+
+class MyMonitor(xbmc.Monitor):
+    def __init__(self):
+        xbmc.Monitor.__init__(self)
+
+        self.settings = {}
+        self.settings['SKIN']      = ''
+        self.settings['CLIENT']    = ''
+        self.settings['EXT_DRIVE'] = ''
+
+        self._onSettingsChanged(init=True)
+
+
+    def onSettingsChanged(self):
+        self._onSettingsChanged()
+
+
+    def _onSettingsChanged(self, init=False):
+        relaunch = False
+
+        for key in self.settings:
+            value = utils.getSetting(key)
+            if value <> self.settings[key]:
+                relaunch           = True
+                self.settings[key] = value
+
+        if init:
+            return
+
+        if relaunch:
+            utils.Log('Settings changed - relaunching')
+            self.relaunch()
+
+    def relaunch(self):
+        xbmcgui.Window(10000).setProperty('LB_RELAUNCH', 'true')
+        
+#------------------------------------------------------------------------
+
+
 def showLiveboxes():
     boxes = network.getLiveboxes()
     utils.Log('%d Liveboxes detected:' % len(boxes))
     for box in boxes:
         utils.Log(box)
+
+
+monitor = MyMonitor()
 
 
 while (not xbmc.abortRequested):
@@ -85,5 +137,7 @@ while (not xbmc.abortRequested):
         scanner.stop()
         started = False
   
+
+del monitor
 
 scanner.stop()

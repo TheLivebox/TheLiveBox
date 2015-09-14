@@ -34,8 +34,11 @@ import utils
 
 ADDON  = utils.ADDON
 HOME   = utils.HOME
+
 ICON   = utils.ICON
 FANART = utils.FANART
+
+DSC = utils.DSC
 
 
 VIDEO_ADDON           = utils.VIDEO_ADDON
@@ -109,8 +112,9 @@ def ParseListItem(item):
     isFolder   = urllib.unquote_plus(item['isFolder'])   == 'True'
     isPlayable = urllib.unquote_plus(item['isPlayable']) == 'True'
     desc       = urllib.unquote_plus(item['desc'])
+    plot       = urllib.unquote_plus(item['plot'])
 
-    return [index, name, mode, url, image, fanart, isFolder, isPlayable, desc]
+    return [index, name, mode, url, image, fanart, isFolder, isPlayable, desc, plot]
 
 
 def GetListItems(params, timeout=60):
@@ -149,7 +153,7 @@ def PlayVideo(mode, url, title='', image=''):
     PlayResolvedVideo(mode, url, title, image)
 
 
-def PlayResolvedVideo(mode, url, title='', image=''):
+def PlayResolvedVideo(mode, url, title='', image='', repeatMode=None):
     img = image
     if len(img) == 0:
         img = ICON
@@ -158,7 +162,8 @@ def PlayResolvedVideo(mode, url, title='', image=''):
     if len(label) == 0:
         label = GETTEXT(30000)
 
-    repeatMode = GetRepeatMode()
+    if not repeatMode:
+        repeatMode = GetRepeatMode()
 
     liz = xbmcgui.ListItem(label, iconImage=img, thumbnailImage=img)
 
@@ -177,8 +182,7 @@ def PlayResolvedVideo(mode, url, title='', image=''):
 
 
 def PlayAddonVideo(url, liz, windowed):
-    APPLICATION.setResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
-
+    SetResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
 
 
 def PlayServerVideo(url, liz, windowed):
@@ -187,12 +191,12 @@ def PlayServerVideo(url, liz, windowed):
     else:
         addr, port = utils.GetHost()
 
-        url = urllib.quote_plus(url)
-        url = 'http://%s:%d/vfs/%s' % (addr, port, url)
+        #url = urllib.quote_plus(url)
+        #url = 'http://%s:%d/vfs/%s' % (addr, port, url)
     
     utils.Log('Playback URL %s' % url)
     
-    APPLICATION.setResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
+    SetResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
 
 
 def getGlobalMenu():
@@ -211,8 +215,8 @@ def DoMainList():
         #if mode == AMAZON_FILE or mode == AMAZON_FOLDER:                   
         #    pass
         #else:
-        #    AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], contextMenu=menu, replaceItems=True)
-        AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], contextMenu=menu, replaceItems=True)
+        #    AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], plot=item[9], contextMenu=menu, replaceItems=True)
+        AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], plot=item[9], contextMenu=menu, replaceItems=True)
 
     return len(list) > 0
 
@@ -234,20 +238,21 @@ def AddFolderItems(_folder):
         url        = item[1]
         isPlayable = item[2]
         isFolder   = item[3]
+        plot       = utils.getLocalContent(url, DSC)
 
         if isPlayable:
             if isFolder:
                 menu = getGlobalMenu()
                 menu.append((GETTEXT(30062), '?mode=%d&url=%s' % (LOCAL_PLAYABLE_FOLDER, url)))
-                AddDir(label, LOCAL_PLAYABLE_FOLDER, url=url, image=file,   isFolder=False, isPlayable=True,  desc=playFolder,   contextMenu=menu, replaceItems=True)
+                AddDir(label, LOCAL_PLAYABLE_FOLDER, url=url, image=file,   isFolder=False, isPlayable=True,  desc=playFolder,   plot=plot, contextMenu=menu, replaceItems=True)
             else:
                 menu = getGlobalMenu()
                 menu.append((GETTEXT(30063), '?mode=%d&url=%s' % (LOCAL_PLAYABLE_FOLDER, _folder)))
-                AddDir(label, LOCAL_FILE,            url=url, image=file,   isFolder=False, isPlayable=True,  desc=playVideo,    contextMenu=menu, replaceItems=True)
+                AddDir(label, LOCAL_FILE,            url=url, image=file,   isFolder=False, isPlayable=True,  desc=playVideo,    plot=plot, contextMenu=menu, replaceItems=True)
         else:
             menu = getGlobalMenu()
             menu.append((GETTEXT(30062), '?mode=%d&url=%s' % (LOCAL_PLAYABLE_FOLDER, url)))
-            AddDir(label, LOCAL_FOLDER,              url=url, image=folder, isFolder=True,  isPlayable=False, desc=browseFolder, contextMenu=menu, replaceItems=True)
+            AddDir(label, LOCAL_FOLDER,              url=url, image=folder, isFolder=True,  isPlayable=False, desc=browseFolder, plot=plot, contextMenu=menu, replaceItems=True)
 
 
 def MainList():
@@ -289,7 +294,7 @@ def GenericList(mode):
     list = GetListItems(list)
 
     for item in list:
-        AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], contextMenu=menu, replaceItems=True)        
+        AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], plot=item[9], contextMenu=menu, replaceItems=True)        
 
 
 def ClearCache():
@@ -312,7 +317,7 @@ def ExaminationRoom():
     for video in videos:
         image  = video[2]
         fanart = image.replace('_200x150.jpg', '_1200x800.jpg')
-        AddDir(video[0], VIDEO_ADDON, video[1], image, fanart, isPlayable=True, desc=video[3], contextMenu=menu, replaceItems=True)
+        AddDir(video[0], VIDEO_ADDON, video[1], image, fanart, isPlayable=True, desc=video[3], plot=video[4], contextMenu=menu, replaceItems=True)
 
 
 def WaitingRoom():
@@ -352,7 +357,7 @@ def WaitingRoom():
 
 
 def PlayFolder(folder):
-    videos = utils.parseFolder(folder, recurse=False)
+    videos = utils.getAllPlayableFiles(folder)
 
     pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
     pl.clear()  
@@ -361,32 +366,20 @@ def PlayFolder(folder):
 
     repeatMode = GetRepeatMode()
 
+    title = GETTEXT(30000)
+    image = ICON
+
     for video in videos:
-        image      = ''
-        title      = video[0]
-        url        = video[1]
-        isPlayable = video[2]
-        isFolder   = video[3]
-
-        if (not isPlayable) or isFolder:
-            continue
-
-        if len(image) == 0:
-            image = ICON
-
-        if len(title) == 0:
-            title = GETTEXT(30000)
-
         liz = xbmcgui.ListItem(title, iconImage=image, thumbnailImage=image)
 
         liz.setInfo(type='Video', infoLabels={'Title': title})
 
-        pl.add(url, liz)
+        pl.add(video, liz)
 
         if isFirst:
             isFirst  = False
             windowed = utils.getSetting('PLAYBACK') == '1'
-            SetResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
+            SetResolvedUrl(video, success=True, listItem=liz, windowed=windowed)
 
     xbmc.executebuiltin('PlayerControl(%s)' % repeatMode)
 
@@ -410,6 +403,11 @@ def UpdateFile(url):
     url = s3.getURL(url)
     url = s3.convertToCloud(url)
 
+    autoPlay = False
+    if utils.DialogYesNo(utils.GETTEXT(30085), utils.GETTEXT(30086)):
+        autoPlay   = True
+        repeatMode = GetRepeatMode()
+
     dp = utils.DialogProgress(GETTEXT(30079) % name)
     download.doDownload(url, temp, name, dp=dp)
     dp.close()
@@ -418,12 +416,28 @@ def UpdateFile(url):
         utils.DialogOK(name, utils.GETTEXT(30081))
         return
 
-    if sfile.exists(temp):
-        sfile.remove(dst)
-        sfile.rename(temp, dst)
-        utils.DialogOK(name, utils.GETTEXT(30082))
+    if not sfile.exists(temp):
+        return
 
-        APPLICATION.containerRefresh()
+    sfile.remove(dst)
+    sfile.rename(temp, dst)
+
+    try:
+        plot = utils.getAmazonContent(src, DSC)
+        if len(plot) > 0:      
+            plotFile = dst.rsplit('.', 1)[0] + '.%s' % DSC
+            f = sfile.file(plotFile, 'w')
+            f.write(plot)
+            f.close()
+    except:
+        pass
+
+    APPLICATION.containerRefresh()
+
+    if autoPlay:
+        PlayResolvedVideo(LOCAL_FILE, dst, name, ICON, repeatMode)
+    else:
+        utils.DialogOK(name, utils.GETTEXT(30082))
     
 
 def GetRepeatMode():
@@ -455,15 +469,16 @@ def ParseRemoteFolder(url, mode):
         isFolder   = item[6]
         isPlayable = item[7]
         desc       = item[8]
-        AddDir(name, mode, url, image, fanart, isFolder, isPlayable, desc, contextMenu=menu, replaceItems=True, infoLabels=None)
+        plot       = item[9]
+        AddDir(name, mode, url, image, fanart, isFolder, isPlayable, desc, plot, contextMenu=menu, replaceItems=True, infoLabels=None)
 
           
 def GetVimeoVideos():
     videos = []
 
     list = GetListItems('plugin://plugin.video.thelivebox/?mode=%d' % EXAM)
-    for item in list: #title, id, image, desc
-        videos.append([item[1], item[3], item[4], item[8]])
+    for item in list: #title, id, image, desc,plot
+        videos.append([item[1], item[3], item[4], item[8], item[9]])
 
     return videos
 
@@ -479,7 +494,7 @@ def validateMode(mode, name):
     return True
 
 
-def AddDir(name, mode, url=None, image=None, fanart=None, isFolder=False, isPlayable=False, desc='', contextMenu=None, replaceItems=False, infoLabels=None):
+def AddDir(name, mode, url=None, image=None, fanart=None, isFolder=False, isPlayable=False, desc='', plot='', contextMenu=None, replaceItems=False, infoLabels=None):
 
     if not validateMode(mode, name):
         return
@@ -487,7 +502,7 @@ def AddDir(name, mode, url=None, image=None, fanart=None, isFolder=False, isPlay
     if not fanart:
         fanart = FANART
 
-    infoLabels = {'title':name, 'fanart':fanart, 'description':desc}
+    infoLabels = {'title':name, 'fanart':fanart, 'description':desc, 'plot':plot}
 
     image = utils.patchImage(mode, image, url, infoLabels)
  
@@ -538,6 +553,8 @@ def main(params):
     try:    url   = urllib.unquote_plus(params['url'])
     except: url = ''
 
+    try:    utils.Log('Selected mode = %s' % str(mode))
+    except: pass
 
     if mode == VIDEO_ADDON or mode == SERVER_FILE or mode == AMAZON_FILE:
         try:    
@@ -619,7 +636,13 @@ def main(params):
 
 
     elif mode == UPDATE_FILE_CHK:
-        GenericList(UPDATE_FILE_CHK)
+        import sfile
+        extDrive = utils.getExternalDrive()
+        if not sfile.exists(extDrive):
+            APPLICATION.closeBusy()
+            utils.DialogOK(GETTEXT(30087) , GETTEXT(30088))
+        else:
+            GenericList(UPDATE_FILE_CHK)
 
     elif mode == UPDATE_FILE:
         UpdateFile(url)

@@ -76,6 +76,8 @@ RETRIEVE_URL     = utils.RETRIEVE_URL
 
 DELIMETER = utils.DELIMETER
 
+DSC = utils.DSC
+
 GETTEXT = utils.GETTEXT
 URL     = 'https://vimeo.com/channels/%s/videos/rss'
 
@@ -127,11 +129,11 @@ def MainList(client):
 
     AddDir( 0, '[I]%s[/I]' % GETTEXT(30020), SETTINGS,        isFolder=False, isPlayable=False, desc=GETTEXT(30021), contextMenu=menu)
     AddDir(10, '[I]%s[/I]' % GETTEXT(30007), CLEARCACHE,      isFolder=False, isPlayable=False, desc=GETTEXT(30018), contextMenu=menu)
-    AddDir(20, '[I]%s[/I]' % GETTEXT(30075), UPDATE_FILE_CHK, isFolder=True,  isPlayable=False, desc=GETTEXT(30076), contextMenu=menu)
 
     if hasClient:
-        AddDir(30, GETTEXT(30026), WAITING, isFolder=False, isPlayable=True,  desc=GETTEXT(30028), contextMenu=menu)
-        AddDir(40, GETTEXT(30027), EXAM,    isFolder=True,  isPlayable=False, desc=GETTEXT(30029), contextMenu=menu)
+        AddDir(20, '[I]%s[/I]' % GETTEXT(30075), UPDATE_FILE_CHK, isFolder=True,  isPlayable=False, desc=GETTEXT(30076), contextMenu=menu)
+        AddDir(30, GETTEXT(30026),               WAITING,         isFolder=False, isPlayable=True,  desc=GETTEXT(30028), contextMenu=menu)
+        AddDir(40, GETTEXT(30027),               EXAM,            isFolder=True,  isPlayable=False, desc=GETTEXT(30029), contextMenu=menu)
 
     if hasClient:
         try:    AddAmazonItems(50, '', menu)
@@ -168,8 +170,10 @@ def AddAmazonItems(index, folder, menu):
         if not utils.isAmazonPlayable(fold):
             continue
 
+        plot = utils.getAmazonContent(fold, DSC)
+
         label = fold.replace(folder, '', 1).replace('_', ' ')
-        AddDir(index, label, AMAZON_FOLDER, url=fold, image=folderImg, isFolder=True,  isPlayable=False, desc=browseFolder, contextMenu=menu)
+        AddDir(index, label, AMAZON_FOLDER, url=fold, image=folderImg, isFolder=True,  isPlayable=False, desc=browseFolder, plot=plot, contextMenu=menu)
         index += 1
 
     for _file in files:
@@ -179,8 +183,10 @@ def AddAmazonItems(index, folder, menu):
         if not utils.isFilePlayable(file):
             continue
 
+        plot = utils.getAmazonContent(file, DSC)
+
         label = file.replace(folder, '', 1).replace('_', ' ').rsplit('.', 1)[0]
-        AddDir(index, label, AMAZON_FILE, url=file, image=fileImg, isFolder=False, isPlayable=True, desc=playVideo, contextMenu=menu)
+        AddDir(index, label, AMAZON_FILE, url=file, image=fileImg, isFolder=False, isPlayable=True, desc=playVideo, plot=plot, contextMenu=menu)
         index += 1
 
 
@@ -201,9 +207,9 @@ def AddFolderItems(index, folder, menu):
         isPlayable = item[2]
 
         if isPlayable:
-            AddDir(index, label, SERVER_FILE,   url=url, image=file,   isFolder=False, isPlayable=True, desc=playVideo,      contextMenu=menu)
+            AddDir(index, label, SERVER_FILE,   url=url, image=file,   isFolder=False, isPlayable=True, desc=playVideo,    contextMenu=menu)
         else:
-            AddDir(index, label, SERVER_FOLDER, url=url, image=folder, isFolder=True, isPlayable=False,   desc=browseFolder, contextMenu=menu)
+            AddDir(index, label, SERVER_FOLDER, url=url, image=folder, isFolder=True, isPlayable=False, desc=browseFolder, contextMenu=menu)
 
         index += 1
 
@@ -263,18 +269,25 @@ def ExaminationRoom(client):
 
     index = 0
 
+    desc = GETTEXT(30056)
+
     for video in videos:
         image  = video[2]
         fanart = image.replace('_200x150.jpg', '_1200x800.jpg')
-        AddDir(index, video[0], VIDEO_ADDON, video[1], image, fanart, isFolder=False, isPlayable=True, contextMenu=menu)       
+        AddDir(index, video[0], VIDEO_ADDON, video[1], image, fanart, isFolder=False, isPlayable=True, desc=desc, plot=video[3], contextMenu=menu) 
         index += 1
 
 
-def CheckForVideoUpdates():
-    amzUpdate = '_update' + DELIMETER
-    extDrive  = utils.getExternalDrive()
-    files     = utils.getAllPlayableFiles(extDrive)
-    updates   = s3.getAllFiles(amzUpdate)
+def CheckForVideoUpdates(client):
+    amzUpdate = ''
+
+    if len(client) > 0:
+        amzUpdate = client + DELIMETER
+    
+    amzUpdate += '_update' + DELIMETER
+    extDrive   = utils.getExternalDrive()
+    files      = utils.getAllPlayableFiles(extDrive)
+    updates    = s3.getAllFiles(amzUpdate)
 
     index = 0
 
@@ -311,13 +324,15 @@ def CheckForVideoUpdates():
         if toAdd and utils.isFilePlayable(dst):
             index += 1
 
+            plot = utils.getAmazonContent(src, DSC)
+
             name = key.rsplit(os.sep)[-1].rsplit('.', 1)[0].replace('_', ' ')
             src  = urllib.quote_plus(src)
             dst  = urllib.quote_plus(dst)
             
             url  = 'name=%s&src=%s&dst=%s' % (urllib.quote_plus(name), src, dst)
 
-            AddDir(index, name+suffix, UPDATE_FILE, url=url, image='DefaultMovies.png', desc=GETTEXT(30077), contextMenu=None)
+            AddDir(index, name+suffix, UPDATE_FILE, url=url, image='DefaultMovies.png', desc=GETTEXT(30077), plot=plot, contextMenu=None)
 
     if index == 0:
         utils.DialogOK(GETTEXT(30078))
@@ -362,10 +377,10 @@ def GetVimeoVideos(html):
             img   = match[2].split('url="', 1)[-1]
 
             try:    desc = re.compile('class=&quot;first&quot;&gt;(.+?)&lt;').findall(item)[0]
-            except: desc = 'No Description'
+            except: desc = ''
 
             if desc == '&lt;/p&gt;':
-                desc = 'No description'
+                desc = ''
                       
             videos.append([title, link, img, desc])
 
@@ -376,7 +391,7 @@ def GetVimeoVideos(html):
     return videos
 
 
-def AddDir(index, name, mode, url=None, image=None, fanart=None, isFolder=False, isPlayable=False, desc='', infoLabels={}, contextMenu=None):
+def AddDir(index, name, mode, url=None, image=None, fanart=None, isFolder=False, isPlayable=False, desc='', plot='', infoLabels={}, contextMenu=None):
     if not fanart:
         fanart = FANART
 
@@ -395,6 +410,9 @@ def AddDir(index, name, mode, url=None, image=None, fanart=None, isFolder=False,
     if desc:
         u += '&desc' + urllib.quote_plus(desc)
 
+    if plot:
+        u += '&plot' + urllib.quote_plus(plot)
+
     liz = xbmcgui.ListItem(name, iconImage=image, thumbnailImage=image)
 
     if contextMenu:
@@ -412,12 +430,13 @@ def AddDir(index, name, mode, url=None, image=None, fanart=None, isFolder=False,
     info += '&index='      + str(index)
     info += '&name='       + name
     info += '&mode='       + str(mode)
-    info += '&image='      + (urllib.quote_plus(image)  if image else '')
+    info += '&image='      + (urllib.quote_plus(image)  if image  else '')
     info += '&fanart='     + (urllib.quote_plus(fanart) if fanart else '')
-    info += '&desc='       + (urllib.quote_plus(desc)   if desc else '')
+    info += '&desc='       + (urllib.quote_plus(desc)   if desc   else '')
+    info += '&plot='       + (urllib.quote_plus(plot)   if plot   else '')
     info += '&isFolder='   + str(isFolder)
-    info += '&url='        + (urllib.quote_plus(url) if url else '')
-    info += '&isPlayable=' + (str(isPlayable) if isPlayable else 'False')
+    info += '&url='        + (urllib.quote_plus(url) if url        else '')
+    info += '&isPlayable=' + (str(isPlayable)        if isPlayable else 'False')
 
     u += '&info=' + urllib.quote_plus(info)
 
@@ -456,7 +475,6 @@ def RetrieveURL(url, type, isServer):
     sfile.makedirs(root)
 
     if type == SERVER_FILE:
-        #dst = MD5(url).hexdigest()
         dst = urllib.quote_plus(url)
         dst = os.path.join(root, dst)
 
@@ -466,7 +484,7 @@ def RetrieveURL(url, type, isServer):
         AddDir(1, dst, 0)
 
     if type == AMAZON_FILE:
-        nfo = url.lower().endswith('.txt') or url.lower().endswith('.nfo')
+        src = url.lower().endswith('.txt') or url.lower().endswith('.%s' % SRC)
         url = urllib.quote_plus(url)
         dst = os.path.join(root, url)
 
@@ -475,7 +493,7 @@ def RetrieveURL(url, type, isServer):
         url = s3.convertToCloud(url)
         utils.Log('Amazon URL : %s' % url)        
 
-        if nfo:
+        if src:
             url = utils.GetHTML(url, maxAge=7*86400)
             url = urllib.quote_plus(url)
             dst = os.path.join(root, url)
@@ -486,7 +504,7 @@ def RetrieveURL(url, type, isServer):
         downloading = sfile.exists(dst+'.part')
 
         if downloading:
-            if isServer:
+            if False:#isServer:
                 AddDir(1, dst, 0)
             else:
                 AddDir(1, url, 0)
@@ -508,36 +526,25 @@ def RetrieveURL(url, type, isServer):
         AddDir(1, url, 0)
 
 
-def get_params():
-    param=[]
-    paramstring=sys.argv[2]
-    if len(paramstring)>=2:
-        params=sys.argv[2]
-        cleanedparams=params.replace('?','')
-        if (params[len(params)-1]=='/'):
-           params=params[0:len(params)-2]
-        pairsofparams=cleanedparams.split('&')
-        param={}
-        for i in range(len(pairsofparams)):
-            splitparams={}
-            splitparams=pairsofparams[i].split('=')
-            if (len(splitparams))==2:
-                param[splitparams[0]]=splitparams[1]
-    return param
+def getParams(url):
+    params = {}
+    url    = url.split('?', 1)[-1]
+    pairs  = url.split('&')
 
+    for pair in pairs:
+        split = pair.split('=')
+        if len(split) > 1:
+            params[split[0]] = split[1]
+  
+    for key in params:
+        utils.Log('%s\t: %s' % (key, params[key]))
 
-def refresh():
-    xbmc.executebuiltin('Container.Refresh')
+    return params
 
 
 def main():
-    client = utils.GetClient()
-    #if len(client) < 1:
-    #    return
-        
-    doRefresh = False
-
-    params = get_params()
+    client = utils.GetClient()   
+    params = getParams(sys.argv[2])
     mode   = None
 
     try:    mode = int(urllib.unquote_plus(params['mode']))
@@ -573,7 +580,6 @@ def main():
 
     elif mode == SETTINGS:
         ADDON.openSettings()
-        #doRefresh = True
         
         
     elif mode == WAITING:
@@ -629,15 +635,11 @@ def main():
 
 
     elif mode == UPDATE_FILE_CHK:
-        CheckForVideoUpdates()
+        CheckForVideoUpdates(client)
 
 
     else:           
         MainList(client)
-
-
-    if doRefresh:
-        refresh()
 
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
 

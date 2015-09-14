@@ -1,3 +1,23 @@
+v1.0.0.13
+    - folder thumbnails for all Amazon content
+    - animated-gifs for all themes
+    - administrator addon is now hidden
+    - monitoring of settings, now only relaunches addon when absolutely necessary
+    - recursively removes partially downloaded files on reboot
+    - moved downloadable content to individual client's folders
+    - remove need for change to source.xml - no longer uses vfs to stream files
+    - disabled Kodi version check
+    - reduced amount of logging
+    - play downloadable content on successful download
+    - check for presence of external storage before downloading
+    - descriptions from Vimeo available in the blue and pink themes (via .dsc file)
+    - descriptions for online files available in the blue and pink themes  (via .dsc file)
+    - descriptions for local file available in the blue and pink themes  (via .dsc file)
+    - description for downloaded files available in the blue and pink themes  (via .dsc file)
+    - no longer prompts for Setup Wizard when running Vimeo streams
+    - added previous menu item to top of menus to simplify navigation
+
+
 v1.0.0.12
     - fixed client IDs containing '.'
     - disabled updating sources.xml

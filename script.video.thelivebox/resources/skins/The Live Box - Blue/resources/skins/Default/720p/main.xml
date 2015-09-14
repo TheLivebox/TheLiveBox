@@ -254,6 +254,19 @@
 					<height>260</height>
 					<texture border="20">lb_ContentPanel.png</texture>
 				</control>
+				<control type="textbox">
+					<description>Plot Text</description>
+					<posx>12</posx>
+					<posy>17</posy>
+					<width>555</width>
+					<height>217</height>
+					<textcolor>FFFFFFFF</textcolor>
+					<font>font13</font>
+					<wrapmultiline>true</wrapmultiline>
+					<autoscroll time="1200" delay="5000" repeat="5000">true</autoscroll>    
+					<label>$INFO[ListItem.Property(Plot)]</label>
+					<visible>!Player.HasVideo</visible>		
+				</control>
 				<control type="videowindow">
 					<posx>10</posx>
 					<posy>15</posy>
@@ -271,7 +284,7 @@
 					<texturefocus border="4">lb_whitebox.png</texturefocus>				
 					<onleft>159</onleft>	
 					<visible>Player.HasVideo</visible>		
-				</control>
+				</control>				
 			</control> 
 		</control>
 		

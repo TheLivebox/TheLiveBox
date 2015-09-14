@@ -112,14 +112,18 @@ def getLivebox(index):
 
 
 def getLocalHost():
-    localIP = xbmc.getInfoLabel('Network.IPAddress')
-    nBoxes  = getNmrLiveBoxes()
-    for i in range(0, nBoxes):
-        name, addr, port = getLivebox(i)
-        if addr == localIP:
-            return addr, port
+    try:
+        localIP = xbmc.getInfoLabel('Network.IPAddress')
+        nBoxes  = getNmrLiveBoxes()
+        for i in range(0, nBoxes):
+            name, addr, port = getLivebox(i)
+            if addr == localIP:                
+                return addr, port
 
-    return 'locallhost', 8080
+    except Exception, e:
+        pass
+
+    return '127.0.0.1', 8080
 
 
 def getAutoServer():

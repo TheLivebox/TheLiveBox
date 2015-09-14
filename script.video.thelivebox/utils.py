@@ -71,10 +71,13 @@ DELIMETER = s3.DELIMETER
 
 IMG_EXT = ['.jpg', '.png']
 
+SRC = 'src'
+DSC = 'dsc'
+
 
 #PLAYABLE = xbmc.getSupportedMedia('video') + '|' + xbmc.getSupportedMedia('music')
 #PLAYABLE = PLAYABLE.replace('|.zip', '')
-PLAYABLE = 'mp3|mp4|m4v|avi|flv|mpg|mov|txt|nfo'
+PLAYABLE = 'mp3|mp4|m4v|avi|flv|mpg|mov|txt|%s' % SRC
 PLAYABLE = PLAYABLE.split('|')
 
 
@@ -358,6 +361,19 @@ def enableWebserver():
     Log(getKodiSetting('services.webserver'))
 
 
+def disableKodiVersionCheck():
+    param = 'versioncheck_enable'
+    addID = 'service.xbmc.versioncheck'
+
+    if xbmc.getCondVisibility('System.HasAddon(%s)' % addID) != 1:
+        return
+
+    addon = xbmcaddon.Addon(addID)
+
+    if addon.getSetting(param) == 'true':
+        addon.setSetting(param, 'false')
+
+
 def setKodiSetting(setting, value):
     setting = '"%s"' % setting
 
@@ -498,10 +514,12 @@ def parseFolder(folder, root=None, recurse=True):
 
     return items
 
-
 def removePartFiles():
-    folder = os.path.join(PROFILE, 'local')
+    _removePartFiles(os.path.join(PROFILE, 'local'), recurse=True)
+    _removePartFiles(getExternalDrive(), recurse=True)
 
+
+def _removePartFiles(folder, recurse=True):
     current, dirs, files = sfile.walk(folder)
 
     for file in files:
@@ -510,10 +528,18 @@ def removePartFiles():
             sfile.remove(file)
             sfile.remove(file.rsplit('.part', 1)[0])
 
+    if not recurse:
+        return
+
+    for dir in dirs:        
+        folder = os.path.join(current, dir)
+        _removePartFiles(folder, recurse)
+
 
 def verifySource():
     input  = '<source><name>Livebox Cache</name><path pathversion="1">special://userdata/addon_data/script.video.thelivebox/</path></source></video>'
     source = os.path.join('special://userdata', 'sources.xml')
+
     if sfile.exists(source):
         contents = sfile.read(source)
         if 'Livebox Cache' in contents:
@@ -524,6 +550,44 @@ def verifySource():
     else:
         Log('Creating sources.xml file')
         contents = '<sources><video><default pathversion="1"></default>%s</sources>' % input
+
+    source = sfile.file(source, 'w')
+    source.write(contents)
+    source.close()
+    
+    return False
+
+
+def updateAdvancedSettings(input):
+    try:
+        filename = 'advancedsettings.xml'
+        source   = os.path.join('special://userdata', filename)
+
+        if sfile.exists(source):
+            contents = sfile.read(source)
+            if input in contents:
+                Log('%s already in %s' % (input, filename))
+                return True
+
+            Log('Updating %s with %s' % (filename, input))
+            start = input.replace('>', ' >').split(' ', 1)[0].strip()
+            end   = '</' + input.rsplit('</', 1)[-1].strip()
+
+            start = contents.split(start, 1)[0]
+            end   = contents.split(end, 1)[-1]
+
+            contents = start
+            if start != end:
+                contents += end
+
+            contents = contents.replace('</advancedsettings>', '%s</advancedsettings>' % input)
+        else:
+            Log('Creating %s with %s' % (filename, input))
+            contents = '<advancedsettings>%s</advancedsettings>' % input
+    except:
+        Log('Error updating %s with %s' % (filename, input))
+        Log('Resetting %s with %s' % (filename, input))
+        contents = '<advancedsettings>%s</advancedsettings>' % input
 
     source = sfile.file(source, 'w')
     source.write(contents)
@@ -549,6 +613,41 @@ def getMD5(value):
     return MD5(value).hexdigest()
 
 
+def getLocalContent(url, ext):
+    filename = None
+    try:
+        if sfile.isfile(url):
+            filename = url.rsplit('.', 1)[0] + '.' + ext
+        
+        if sfile.isdir(url):
+            filename = url + '.' + ext
+
+        if filename:
+            return sfile.read(filename)
+
+    except:
+        pass
+
+    return ''
+
+
+def getAmazonContent(url, ext):
+    try:
+        folder = url.rsplit(DELIMETER, 1)[0]
+        root   = folder + url.replace(folder, '').rsplit('.', 1)[0]
+
+        nfo = root + '.' + ext
+        nfo = s3.getURL(urllib.quote_plus(nfo))
+
+        plot = GetHTML(nfo, maxAge=28*86400)
+
+        return plot
+    except:
+        pass
+
+    return ''
+
+
 def patchAmazonImage(mode, image, url, infoLabels):
     folder = url.rsplit(DELIMETER, 1)[0]
     files  = s3.getAllFiles(folder, recurse=False)
@@ -561,9 +660,6 @@ def patchAmazonImage(mode, image, url, infoLabels):
 
             img = s3.getURL(urllib.quote_plus(img))
             gif = s3.getURL(urllib.quote_plus(root + '.gif'))
-
-            #img = s3.convertToCloud(img)
-            #gif = s3.convertToCloud(gif)
 
             #Kodi incorrectly handles remote gifs therefore download and store locally
             gifFolder = os.path.join(PROFILE, 'c')

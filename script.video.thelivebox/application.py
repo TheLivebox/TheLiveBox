@@ -73,14 +73,11 @@ class Application(xbmcgui.WindowXML):
         self.context         = False
         self.busy            = None
         self.osd             = None
-        self.showBack        = False
+        self.showBack        = True
         self.timer           = None
         self.faves           = str(favourite.getFavourites())
-        self.fullScreenCount = 0
         self.counter         = 0
         self.listSize        = -1
-        #self.relaunchCount   = 5
-        self.relaunch        = False
         self.setProperty('LB_FOOTER',  'Powered by SWIFT')
 
 
@@ -113,7 +110,6 @@ class Application(xbmcgui.WindowXML):
             self.onParams(self.start.replace('_Playable', ''), isFolder=False)
             return
 
-        #self.resetTimer()
         self.doModal()
 
               
@@ -144,29 +140,19 @@ class Application(xbmcgui.WindowXML):
             pass
 
 
-    def onTimer(self):        
+    def onTimer(self):  
         self.counter += 1
-
-        if (self.counter % 5) == 0:
-            utils.Log(xbmcaddon.Addon(self.ADDONID).getAddonInfo('version'))            
 
         if self.counter == 5:
             self.clearProperty('LB_FOOTER')
 
-        #if xbmc.Player().isPlayingVideo():
-        #    self.relaunchCount = 5
-        #else:
-        #    self.relaunchCount -= 1
-
-        if (self.relaunch):# or ((self.relaunchCount < 0) and (self.listSize <> self.getListSize())):
+        if xbmcgui.Window(10000).getProperty('LB_RELAUNCH') == 'true':
+            xbmcgui.Window(10000).setProperty('LB_RELAUNCH', 'false')
             self.doRelaunch()
             return
 
         if self.listSize <> self.getListSize():
-            if self.getListSize() > 0:
-                print "LISTS"
-                print self.listSize
-                print self.getListSize()
+            if self.getListSize() > 0:                
                 self.containerRefresh()
 
         self.resetTimer()
@@ -183,19 +169,9 @@ class Application(xbmcgui.WindowXML):
         self.close()
 
 
-    def checkSkin(self):
-        skin = utils.getSetting('SKIN')
-
-        if self.skin == skin:
-            return        
-
-        self.skin          = skin
-        self.relaunch      = True
-        #self.relaunchCount = True
-
-
     def onFocus(self, controlId):
-        utils.Log('onFocus %d' % controlId)
+        #utils.Log('onFocus %d' % controlId)
+        pass
 
 
     def onAction(self, action):
@@ -204,7 +180,7 @@ class Application(xbmcgui.WindowXML):
         actionId = action.getId()
         buttonId = action.getButtonCode()
 
-        if actionId != 107:            
+        if actionId != 107:
             utils.Log('onAction actionID %d' % actionId)
             utils.Log('onAction buttonID %d' % buttonId)            
 
@@ -214,12 +190,16 @@ class Application(xbmcgui.WindowXML):
         if actionId in [ACTION_PARENT_DIR, ACTION_BACK] or buttonId in [ESC]:
             return self.onBack()        
 
+        select = (actionId == ACTION_SELECT) or (actionId == ACTION_LCLICK)
+
+        if not select:
+            return
+
         try:    id = self.getFocus().getId()         
         except: id = 0
 
-        select = (actionId == ACTION_SELECT) or (actionId == ACTION_LCLICK)
 
-        if select and id == MAINLIST:   
+        if id == MAINLIST:   
             liz        = self.getSelectedItem()
             param      = liz.getProperty('Param')
             image      = liz.getProperty('Image')
@@ -235,7 +215,7 @@ class Application(xbmcgui.WindowXML):
                 self.onParams(param, isFolder)
                 self.resetTimer()
 
-        if select and id == VIDEOWINDOW:   
+        if id == VIDEOWINDOW:   
             xbmc.executebuiltin('Action(fullscreen)')  
         
                                  
@@ -389,12 +369,12 @@ class Application(xbmcgui.WindowXML):
 
         #TODO 'Play from here'
 
-        if param in self.faves:
-            std.append(('Remove from favourites', 'STD:REMOVEFAVOURITE'))
-        else:
-            std.append(('Add to favourites',      'STD:ADDFAVOURITE'))
+        #if param in self.faves:
+        #    std.append(('Remove from favourites', 'STD:REMOVEFAVOURITE'))
+        #else:
+        #    std.append(('Add to favourites',      'STD:ADDFAVOURITE'))
 
-        std.append(('Add-on settings', 'STD:SETTINGS'))
+        std.append((GETTEXT(30020), 'STD:SETTINGS'))
         return std
 
 
@@ -443,14 +423,11 @@ class Application(xbmcgui.WindowXML):
 
     def addonSettings(self):
         xbmcaddon.Addon(self.ADDONID).openSettings()
-        self.relaunch      = True
-        #self.relaunchCount = True
         return True
         
         
     def setProperty(self, property, value):
         self.properties[property] = value
-        #xbmcgui.Window(xbmcgui.getCurrentWindowId()).setProperty(property, value)
         xbmcgui.Window(10000).setProperty(property, value)
         
         
@@ -537,11 +514,6 @@ class Application(xbmcgui.WindowXML):
             liz.setProperty('ReplaceItems', 'true'  if replaceItems else 'false')
 
             index += 1
-
-            if contextMenu and (len(contextMenu) > 0):
-                #doesn't seem to work for script plugins??
-                #but we'll set it anyway
-                liz.addContextMenuItems(contextMenu)
   
             if infoLabels and (len(infoLabels) > 0):
                 liz.setInfo(type='', infoLabels=infoLabels)
@@ -561,13 +533,17 @@ class Application(xbmcgui.WindowXML):
 
     def onParams(self, params, isFolder=True):
         self.stopTimer()
+
+        emptyLength = 2
         if isFolder:
             self.newList() 
             #store params as first item in list
             self.list.append(params)
-            if self.showBack:
+            if self.showBack and len(self.lists) > 1: #don't add to very first list
                 #add the '..' item
-                self.addDir('Previous menu', LISTBACK, image='DefaultFolderBack.png', contextMenu=[('Add-on settings', 'STD:SETTINGS')], replaceItems=True)
+                emptyLength = 3 #take into account the back item itself
+                infoLabels = {'description':GETTEXT(30090)}
+                self.addDir(GETTEXT(30089), LISTBACK, image='DefaultFolderBack.png', contextMenu=[(GETTEXT(30020), 'STD:SETTINGS')], replaceItems=True, infoLabels=infoLabels)
 
         #call into the "real" addon
         if isFolder:
@@ -577,10 +553,9 @@ class Application(xbmcgui.WindowXML):
 
         if isFolder:            
             self.addItems(self.list)
-            if len(self.list) < 2:
+            if len(self.list) < emptyLength:
                 self.onBack()
 
-        #self.checkSkin()
         self.resetTimer()
 
 
@@ -592,8 +567,6 @@ class Application(xbmcgui.WindowXML):
     def setResolvedUrl(self, url, success=True, listItem=None, windowed=False):
         if not success or len(url) == 0:
             return
-         
-        self.fullScreenCount = 0
 
         if not listItem:
             listItem = xbmcgui.ListItem(url)
@@ -605,7 +578,16 @@ class Application(xbmcgui.WindowXML):
 
         type = xbmc.PLAYER_CORE_AUTO
 
+        url = xbmc.translatePath(url)
+
         pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
         pl.clear()
         pl.add(url, listItem)
         xbmc.Player(type).play(pl, windowed=windowed)
+
+        count = 5
+        while count > 0:
+            count -= 1
+            xbmc.sleep(1000)            
+            if xbmc.getCondVisibility('player.paused') == 1:
+                xbmc.Player().pause()

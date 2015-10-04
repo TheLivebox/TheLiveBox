@@ -39,6 +39,7 @@ ICON   = utils.ICON
 FANART = utils.FANART
 
 DSC = utils.DSC
+SRC = utils.SRC
 
 
 VIDEO_ADDON           = utils.VIDEO_ADDON
@@ -56,10 +57,21 @@ AMAZON_FOLDER         = utils.AMAZON_FOLDER
 LOCAL_PLAYABLE_FOLDER = utils.LOCAL_PLAYABLE_FOLDER
 UPDATE_FILE_CHK       = utils.UPDATE_FILE_CHK
 UPDATE_FILE           = utils.UPDATE_FILE
+DELETE_LOCAL_FILE     = utils.DELETE_LOCAL_FILE
 
 SERVER          = utils.SERVER
 LBVERSION       = utils.LBVERSION
 ADDRESS         = utils.ADDRESS
+
+
+# Settings
+SHOW_CONFIGURE = utils.SHOW_CONFIGURE
+SHOW_REFRESH   = utils.SHOW_REFRESH
+SHOW_DOWNLOAD  = utils.SHOW_DOWNLOAD
+SHOW_VIMEO     = utils.SHOW_VIMEO
+SHOW_AMAZON    = utils.SHOW_AMAZON
+SHOW_LOCAL     = utils.SHOW_LOCAL
+
 
 
 GETTEXT = utils.GETTEXT
@@ -140,6 +152,13 @@ def GetListItems(params, timeout=60):
 
 
 def PlayVideo(mode, url, title='', image=''):
+    if mode == AMAZON_FILE:
+        return PlayAmazonVideo(mode, url, title, image)
+
+    _PlayVideo(mode, url, title, image)
+
+
+def _PlayVideo(mode, url, title, image):
     APPLICATION.showBusy()
 
     addr, port = utils.GetHost()
@@ -185,6 +204,25 @@ def PlayAddonVideo(url, liz, windowed):
     SetResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
 
 
+def PlayAmazonVideo(mode, url, title, image):
+    #if utils.getSetting('DOWNLOAD_LOC') == '1':
+    #    return _PlayVideo(mode, url, title, image)
+ 
+    import s3
+    import sfile
+
+    loc = utils.getDownloadLocation()
+
+    if not sfile.exists(loc):
+        utils.DialogOK(GETTEXT(30095), GETTEXT(30096))
+        return
+
+    client = utils.GetClient() + s3.DELIMETER        
+    dst    = os.path.join(loc, url.replace(client, ''))
+
+    DownloadFile(title, url, dst, image)
+
+
 def PlayServerVideo(url, liz, windowed):
     if url.startswith('http'):
         pass
@@ -222,13 +260,16 @@ def DoMainList():
 
 
 def AddFolderItems(_folder):
+    if not SHOW_LOCAL:
+        return
+
     items = utils.parseFolder(_folder, GETTEXT(30058))
     if len(items) == 0:
         return
 
     browseFolder = utils.GETTEXT(30055)
     playVideo    = utils.GETTEXT(30056)
-    playFolder   = utils.GETTEXT(30062)
+    playFolder   = utils.GETTEXT(30098)
 
     file   = 'DefaultMovies.png'
     folder = 'DefaultFolder.png'
@@ -248,6 +289,7 @@ def AddFolderItems(_folder):
             else:
                 menu = getGlobalMenu()
                 menu.append((GETTEXT(30063), '?mode=%d&url=%s' % (LOCAL_PLAYABLE_FOLDER, _folder)))
+                menu.append((GETTEXT(30097), '?mode=%d&url=%s' % (DELETE_LOCAL_FILE, url)))
                 AddDir(label, LOCAL_FILE,            url=url, image=file,   isFolder=False, isPlayable=True,  desc=playVideo,    plot=plot, contextMenu=menu, replaceItems=True)
         else:
             menu = getGlobalMenu()
@@ -388,56 +430,117 @@ def UpdateFile(url):
     if not utils.IsServer():
         return
 
-    import download
-    import s3
-    import sfile
-
     items = url.split('&')
     name  = urllib.unquote_plus(items[0].split('=', 1)[-1])
     src   = urllib.unquote_plus(items[1].split('=', 1)[-1])
     dst   = urllib.unquote_plus(items[2].split('=', 1)[-1])
 
-    temp  = dst + '.temp'
+    DownloadFile(name, src,  dst)
 
-    url = urllib.quote_plus(src)
-    url = s3.getURL(url)
-    url = s3.convertToCloud(url)
 
-    autoPlay = False
-    if utils.DialogYesNo(utils.GETTEXT(30085), utils.GETTEXT(30086)):
+def Delete(filename):
+    import sfile
+
+    files = sfile.related(filename)
+    for file in files:
+        sfile.delete(file)
+
+
+def DownloadFile(name, _src,  dst, image=None):
+    import download
+    import s3
+    import sfile
+
+    src = _src
+
+    isSrc = src.lower().endswith('.txt') or src.lower().endswith('.%s' % SRC)
+    if isSrc:
+        src = urllib.quote_plus(src)
+        src = s3.getURL(src)
+        src = s3.convertToCloud(src)
+        src = utils.GetHTML(src, maxAge=7*86400)
+
+        #replace extension on destination
+        dst = dst.rsplit('.', 1)[0] + '.' + src.rsplit('.', 1)[-1]
+
+    autoPlay   = True
+    repeatMode = False
+    thumb      = ICON
+
+    if sfile.exists(dst):
         autoPlay   = True
         repeatMode = GetRepeatMode()
+        root       = dst.rsplit('.', 1)[0]
+        jpg        = root + '.jpg'
+        png        = root + '.png'
+        if sfile.exists(jpg):
+            thumb = jpg
+        elif sfile.exists(png):
+            thumb = png
 
-    dp = utils.DialogProgress(GETTEXT(30079) % name)
-    download.doDownload(url, temp, name, dp=dp)
-    dp.close()
+    else:
+        autoPlay = False
+        if utils.DialogYesNo(utils.GETTEXT(30085), utils.GETTEXT(30086)):
+            autoPlay   = True
+            repeatMode = GetRepeatMode()
 
-    if sfile.exists(temp + '.part'): #if part file exists then download has failed
-        utils.DialogOK(name, utils.GETTEXT(30081))
-        return
+        temp  = dst + '.temp'
 
-    if not sfile.exists(temp):
-        return
+        url = urllib.quote_plus(src)
+        url = s3.getURL(url)
+        url = s3.convertToCloud(url)
 
-    sfile.remove(dst)
-    sfile.rename(temp, dst)
+        if image and image.startswith('http'):
+            pass
+        else:
+            image = None
 
-    try:
-        plot = utils.getAmazonContent(src, DSC)
-        if len(plot) > 0:      
-            plotFile = dst.rsplit('.', 1)[0] + '.%s' % DSC
-            f = sfile.file(plotFile, 'w')
-            f.write(plot)
-            f.close()
-    except:
-        pass
+        dp = utils.DialogProgress(GETTEXT(30079) % name)
+        download.doDownload(url, temp, name, dp=dp)
+        dp.close()
 
-    APPLICATION.containerRefresh()
+        if sfile.exists(temp + '.part'): #if part file exists then download has failed
+            utils.DialogOK(name, utils.GETTEXT(30081))
+            return
+
+        if not sfile.exists(temp):
+            return
+
+        sfile.remove(dst)
+        sfile.rename(temp, dst)
+
+        try:
+            plot = utils.getAmazonContent(_src, DSC)
+            if len(plot) > 0:      
+                plotFile = dst.rsplit('.', 1)[0] + '.%s' % DSC
+                f = sfile.file(plotFile, 'w')
+                f.write(plot)
+                f.close()
+        except:
+            pass
+
+        if image:            
+            img   = image.rsplit('?', 1)[0]
+            ext   = img.rsplit('.'  , 1)[-1]
+            root  = dst.rsplit('.'  , 1)[0]
+            jpg   = root + '.%s' %  ext
+            gif   = root + '.%s' % 'gif'
+
+            download.download(image, jpg)
+            thumb = jpg
+
+            gifURL = s3.getURL(urllib.quote_plus(_src.rsplit('.', 1)[0] + '.gif'))
+            resp = download.getResponse(gifURL, 0, '')
+            if resp:
+                download.download(gifURL, gif)
 
     if autoPlay:
-        PlayResolvedVideo(LOCAL_FILE, dst, name, ICON, repeatMode)
+        xbmcgui.Window(10000).setProperty('LB_AUTOPLAY', 'True')
+        APPLICATION.containerRefresh()
+        PlayResolvedVideo(LOCAL_FILE, dst, name, thumb, repeatMode)        
     else:
         utils.DialogOK(name, utils.GETTEXT(30082))
+        APPLICATION.containerRefresh()
     
 
 def GetRepeatMode():
@@ -502,7 +605,9 @@ def AddDir(name, mode, url=None, image=None, fanart=None, isFolder=False, isPlay
     if not fanart:
         fanart = FANART
 
-    infoLabels = {'title':name, 'fanart':fanart, 'description':desc, 'plot':plot}
+    name = name.replace('_', ' ')
+
+    infoLabels = {'title':name, 'fanart':fanart, 'description':desc, 'plot':plot}    
 
     image = utils.patchImage(mode, image, url, infoLabels)
  
@@ -583,6 +688,10 @@ def main(params):
 
         except Exception, e:
             utils.Log('Error in LOCAL_FILE mode - %s' % str(e))
+
+    elif mode == DELETE_LOCAL_FILE:
+        Delete(url)
+        APPLICATION.containerRefresh()
         
 
     elif mode == SERVER_FOLDER or mode == AMAZON_FOLDER:
@@ -663,11 +772,12 @@ def main(params):
         mode  = GETTEXT(30045)
 
 
-    title = GETTEXT(30000) + ' [COLOR=blue]-[/COLOR] ' + mode
-
+    title  = '%s [COLOR=blue]-[/COLOR] v%s' % (GETTEXT(30000), utils.VERSION) + ' [COLOR=blue]-[/COLOR] ' + mode
+    footer = '%s [COLOR=blue]-[/COLOR] v%s' % (GETTEXT(30000), utils.VERSION) + ' [COLOR=blue]-[/COLOR] ' + mode
 
     APPLICATION.setProperty('LB_TITLE',    title)
     APPLICATION.setProperty('LB_MAINDESC', GETTEXT(30019))
+    APPLICATION.setProperty('LB_FOOTER', footer)
 
 
 def onParams(application, params):

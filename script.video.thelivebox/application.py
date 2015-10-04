@@ -54,6 +54,8 @@ LISTBACK  = -999
 
 GETTEXT = utils.GETTEXT
 FRODO   = utils.FRODO
+
+VERSION = utils.VERSION
        
 
 class Application(xbmcgui.WindowXML):
@@ -78,7 +80,6 @@ class Application(xbmcgui.WindowXML):
         self.faves           = str(favourite.getFavourites())
         self.counter         = 0
         self.listSize        = -1
-        self.setProperty('LB_FOOTER',  'Powered by SWIFT')
 
 
     def onInit(self): 
@@ -142,9 +143,6 @@ class Application(xbmcgui.WindowXML):
 
     def onTimer(self):  
         self.counter += 1
-
-        if self.counter == 5:
-            self.clearProperty('LB_FOOTER')
 
         if xbmcgui.Window(10000).getProperty('LB_RELAUNCH') == 'true':
             xbmcgui.Window(10000).setProperty('LB_RELAUNCH', 'false')

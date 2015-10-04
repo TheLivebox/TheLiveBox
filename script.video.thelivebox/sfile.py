@@ -81,8 +81,25 @@ def glob(folder):
     return full
 
 
+def related(filename):
+    found  = []
+    folder = filename.rsplit(os.sep, 1)[0]
+    files  = glob(folder)
+    match  = filename.rsplit('.', 1)[0].lower()
+
+    for file in files:
+        if file.rsplit('.', 1)[0].lower() == match:
+            found.append(file)
+
+    return found
+
+
 def makedirs(path):
     xbmcvfs.mkdirs(path)
+
+
+def delete(filename):
+    return xbmcvfs.delete(filename)
 
 
 def remove(filename):

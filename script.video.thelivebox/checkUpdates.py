@@ -198,18 +198,6 @@ def getCurrentChecksum():
     return None
 
 
-def checkUpdateVideo():
-    pass
-
-
-def checkRemoveVideo():
-    pass
-
-
-def checkVideo():
-    checkUpdateVideo()
-    checkRemoveVideo()
-
 
 def checkRepo(reportCurrent=False):
     ret  = _checkRepo()
@@ -242,16 +230,7 @@ def checkRepo(reportCurrent=False):
 
 
 def main():
-    if len(sys.argv) < 2:
-        return
-    
-    option = sys.argv[1]
-
-    if option == 'software':
-        checkRepo(reportCurrent=True)        
-
-    if option == 'video':
-        checkVideo()
+    checkRepo(reportCurrent=True)
 
 if __name__ == '__main__': 
     main()

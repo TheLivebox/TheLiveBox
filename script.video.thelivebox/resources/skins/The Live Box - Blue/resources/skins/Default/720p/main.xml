@@ -223,6 +223,15 @@
 					<aspectratio>stretch</aspectratio>
 				</control>
 				<control type="image">
+					<posx>12</posx>
+					<posy>12</posy>
+					<width>296</width>
+					<height>216</height>                
+					<fadetime>500</fadetime>					
+					<texture>$INFO[ListItem.Property(gif)]</texture>
+					<aspectratio>stretch</aspectratio>
+				</control>
+				<control type="image">
 						<posx>320</posx>
 						<posy>0</posy>
 						<width>260</width>

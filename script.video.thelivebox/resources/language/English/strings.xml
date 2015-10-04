@@ -48,8 +48,8 @@
 	<string id="30045">Client</string>
 	<string id="30046">Server</string>
 	<string id="30047">Demo mode (requires a restart)</string>
-	<string id="30048">External storage</string>
-	<string id="30049">Browse external storage</string>
+	<string id="30048">Local storage</string>
+	<string id="30049">Browse local storage</string>
 	<string id="30050">Administrator password</string>
 	<string id="30051">Please enter administrator password</string>
     <string id="30052">Unit will temporarily run in local server mode</string>
@@ -62,10 +62,10 @@
 	<string id="30059">Browse online</string>
 	<string id="30060">Your Livebox software has been automatically updated</string>	
 	<string id="30061">Please restart your system when convenient</string>	
-	<string id="30062">Click to play complete folder</string>		
+	<string id="30062">Play complete folder</string>		
 	<string id="30063">Play all files</string>		
 	<string id="30064">You cache has been reset</string>	
-	<string id="30065">External storage</string>	
+	<string id="30065">Local storage</string>	
 	<string id="30066">[COLOR springgreen]Check for software updates[/COLOR]</string>		
 	<string id="30067">Checking for software updates</string>		
 	<string id="30068">This may take a few minutes</string>		
@@ -78,7 +78,7 @@
 	<string id="30075">Check for downloadable content</string>		
 	<string id="30076">Check online for any downloadable content that may be available</string>		
 	<string id="30077">Download video file</string>
-	<string id="30078">There is no downloadable currently available</string>
+	<string id="30078">There is currently no available downloadable content</string>
 	<string id="30079">Now downloading %s</string>
 	<string id="30080">Please be patient, this will only take a few minutes</string>
 	<string id="30081">Unfortunately the download has failed, please try again later</string>
@@ -87,8 +87,24 @@
 	<string id="30084">[COLOR springgreen] (New)[/COLOR]</string>
 	<string id="30085">Do you want to automatically play the</string>
 	<string id="30086">video once it has been downloaded?</string>
-	<string id="30087">Please ensure your external storage is connected</string>
+	<string id="30087">Please ensure your local storage is connected</string>
 	<string id="30088">and configued correctly in the settings</string>
 	<string id="30089">Previous menu</string>
 	<string id="30090">Click to return to previous menu</string>
+	<string id="30091">[COLOR springgreen]Launch remote support[/COLOR]</string>
+	<string id="30092">Download location</string>
+	<string id="30093">Device</string>
+	<string id="30094">Local storage</string>
+	<string id="30095">Unable to download video, please ensure</string>
+	<string id="30096">your local storage is correctly configured</string>
+	<string id="30097">Delete file</string>
+	<string id="30098">Click to play complete folder</string>		
+	
+	<string id="35000">Display options</string>
+	<string id="35001">Configure settings</string>
+	<string id="35002">Refresh cache</string>
+	<string id="35003">Check for downloadable content</string>
+	<string id="35004">Show Vimeo content</string>
+	<string id="35005">Browse online</string>
+	<string id="35006">Browse local files</string>	
 </strings>

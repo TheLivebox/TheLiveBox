@@ -74,6 +74,15 @@ LBVERSION        = utils.LBVERSION
 ADDRESS          = utils.ADDRESS
 RETRIEVE_URL     = utils.RETRIEVE_URL
 
+# Settings
+SHOW_CONFIGURE = utils.SHOW_CONFIGURE
+SHOW_REFRESH   = utils.SHOW_REFRESH
+SHOW_DOWNLOAD  = utils.SHOW_DOWNLOAD
+SHOW_VIMEO     = utils.SHOW_VIMEO
+SHOW_AMAZON    = utils.SHOW_AMAZON
+SHOW_LOCAL     = utils.SHOW_LOCAL
+
+
 DELIMETER = utils.DELIMETER
 
 DSC = utils.DSC
@@ -128,19 +137,26 @@ def MainList(client):
 
     menu = getGlobalMenu()
 
-    AddDir( 0, '[I]%s[/I]' % GETTEXT(30020), SETTINGS,        isFolder=False, isPlayable=False, desc=GETTEXT(30021), contextMenu=menu)
-    AddDir(10, '[I]%s[/I]' % GETTEXT(30007), CLEARCACHE,      isFolder=False, isPlayable=False, desc=GETTEXT(30018), contextMenu=menu)
+    if SHOW_CONFIGURE:
+        AddDir( 0, '[I]%s[/I]' % GETTEXT(30020), SETTINGS,        isFolder=False, isPlayable=False, desc=GETTEXT(30021), contextMenu=menu)
+
+    if SHOW_REFRESH:
+        AddDir(10, '[I]%s[/I]' % GETTEXT(30007), CLEARCACHE,      isFolder=False, isPlayable=False, desc=GETTEXT(30018), contextMenu=menu)
 
     if hasClient:
-        AddDir(20, '[I]%s[/I]' % GETTEXT(30075), UPDATE_FILE_CHK, isFolder=True,  isPlayable=False, desc=GETTEXT(30076), contextMenu=menu)
-        AddDir(30, GETTEXT(30026),               WAITING,         isFolder=False, isPlayable=True,  desc=GETTEXT(30028), contextMenu=menu)
-        AddDir(40, GETTEXT(30027),               EXAM,            isFolder=True,  isPlayable=False, desc=GETTEXT(30029), contextMenu=menu)
+        if SHOW_DOWNLOAD:
+            AddDir(20, '[I]%s[/I]' % GETTEXT(30075), UPDATE_FILE_CHK, isFolder=True,  isPlayable=False, desc=GETTEXT(30076), contextMenu=menu)
 
-    if hasClient:
+        if SHOW_VIMEO:
+            AddDir(30, GETTEXT(30026),               WAITING,         isFolder=False, isPlayable=True,  desc=GETTEXT(30028), contextMenu=menu)
+            AddDir(40, GETTEXT(30027),               EXAM,            isFolder=True,  isPlayable=False, desc=GETTEXT(30029), contextMenu=menu)
+
+    if hasClient and SHOW_AMAZON:
         try:    AddAmazonItems(50, '', menu)
         except: pass
 
-    AddFolderItems(100, '', menu)
+    if SHOW_LOCAL:
+        AddFolderItems(100, '', menu)
 
     if utils.getSetting('DEMO') == 'true':
         AddDir(999, 'Demo',  DEMO, isFolder=True, isPlayable=False, desc='Demo', contextMenu=menu)
@@ -336,7 +352,10 @@ def CheckForVideoUpdates(client):
             AddDir(index, name+suffix, UPDATE_FILE, url=url, image='DefaultMovies.png', desc=GETTEXT(30077), plot=plot, contextMenu=None)
 
     if index == 0:
-        utils.DialogOK(GETTEXT(30078))
+        if xbmcgui.Window(10000).getProperty('LB_AUTOPLAY').lower() <> 'true':
+            utils.DialogOK(GETTEXT(30078))
+
+    xbmcgui.Window(10000).setProperty('LB_AUTOPLAY', 'False')
 
         
 def GetRepeatMode():
@@ -472,8 +491,7 @@ def RetrieveURL(url, type, isServer):
     if type == VIDEO_ADDON:
         AddDir(1, url, 0)
 
-    root = os.path.join(PROFILE, 'local')
-    sfile.makedirs(root)
+    root = utils.getDownloadLocation()
 
     if type == SERVER_FILE:
         dst = urllib.quote_plus(url)

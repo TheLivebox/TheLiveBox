@@ -31,7 +31,7 @@ import utils
 
 utils.disableKodiVersionCheck()
 
-utils.updateAdvancedSettings('<loglevel hide="false">-1</loglevel>')
+#utils.updateAdvancedSettings('<loglevel hide="false">-1</loglevel>')
 utils.setKodiSetting('debug.showloginfo',  False) 
 utils.setKodiSetting('debug.extralogging', False) 
 
@@ -82,9 +82,15 @@ class MyMonitor(xbmc.Monitor):
         xbmc.Monitor.__init__(self)
 
         self.settings = {}
-        self.settings['SKIN']      = ''
-        self.settings['CLIENT']    = ''
-        self.settings['EXT_DRIVE'] = ''
+        self.settings['SKIN']           = ''
+        self.settings['CLIENT']         = ''
+        self.settings['EXT_DRIVE']      = ''
+        self.settings['SHOW_CONFIGURE'] = ''
+        self.settings['SHOW_REFRESH']   = ''
+        self.settings['SHOW_DOWNLOAD']  = ''
+        self.settings['SHOW_VIMEO']     = ''
+        self.settings['SHOW_AMAZON']    = ''
+        self.settings['SHOW_LOCAL']     = ''
 
         self._onSettingsChanged(init=True)
 

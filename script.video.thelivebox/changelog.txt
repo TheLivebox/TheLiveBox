@@ -1,3 +1,10 @@
+v1.0.0.15
+    - launch remote support
+    - select which options to display
+    - changed Amamzon behaviour from streaming to downloading
+    - choose between local storage or the device itself as the download location for online files
+    - can now delete files on the local storage
+
 v1.0.0.14
     - version bump for plugin version 1.0.0.16
 

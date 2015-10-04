@@ -59,6 +59,7 @@ AMAZON_FOLDER         = 1300
 LOCAL_PLAYABLE_FOLDER = 1400
 UPDATE_FILE_CHK       = 1500
 UPDATE_FILE           = 1600
+DELETE_LOCAL_FILE     = 1700
 
 SERVER          = 5100
 LBVERSION       = 5200
@@ -109,8 +110,16 @@ def setSetting(param, value):
     xbmcaddon.Addon(ADDONID).setSetting(param, value)
 
 
-GETTEXT   = ADDON.getLocalizedString
-BOOTVIDEO = getSetting('BOOTVIDEO') == 'true'
+
+GETTEXT        = ADDON.getLocalizedString
+BOOTVIDEO      = getSetting('BOOTVIDEO')      == 'true'
+SHOW_CONFIGURE = getSetting('SHOW_CONFIGURE') == 'true'
+SHOW_REFRESH   = getSetting('SHOW_REFRESH')   == 'true'
+SHOW_DOWNLOAD  = getSetting('SHOW_DOWNLOAD')  == 'true'
+SHOW_VIMEO     = getSetting('SHOW_VIMEO')     == 'true'
+SHOW_AMAZON    = getSetting('SHOW_AMAZON')    == 'true'
+SHOW_LOCAL     = getSetting('SHOW_LOCAL')     == 'true'
+
 
 
 DEBUG = False
@@ -466,6 +475,15 @@ def isPlayable(path):
 def getExternalDrive():
     return getSetting('EXT_DRIVE')
 
+def getDownloadLocation():
+    if getSetting('DOWNLOAD_LOC') == '1':
+        loc = os.path.join(PROFILE, 'local')
+        try:    sfile.makedirs(loc)
+        except: pass
+        return loc
+
+    return getExternalDrive()
+
 
 def getAllPlayableFiles(folder):
     files = {}
@@ -701,7 +719,7 @@ def patchImage(mode, image, url, infoLabels):
         for ext in IMG_EXT:            
             img  = root + ext
             if os.path.exists(img):               
-                infoLabels['Gif']  = root + '.gif'
+                infoLabels['Gif']     = root + '.gif'
                 return img
 
     return image 

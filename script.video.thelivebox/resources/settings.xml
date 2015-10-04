@@ -1,20 +1,32 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
     <category label="30040">
-        <setting id="VERSION"  type="text" label="Version"  default="0.0.0"  visible="false"/>
+        <setting id="VERSION"  type="text" label="Version"  default="0.0.0" visible="false"/>
 		
-		<setting id="DEMO"     type="bool"   label="30047" default="false"  visible="false"/>
+		<setting id="DEMO"     type="bool"   label="30047" default="false" visible="false"/>
 		
 		<setting id="CLIENT"    type="text"   label="30016" default=""/>		
 		<setting id="PLAYBACK"  type="enum"   label="30030" lvalues="30031|30032" default="0"/>
 				
 		<setting id="BOOTVIDEO" type="bool"   label="30017" default="true"/>
+		
+		<setting id="EXT_DRIVE" type="folder" label="30065" default="/storage/external_storage/sda1/"/>	
+		
+		<setting id="DOWNLOAD_LOC" type="enum" label="30092" lvalues="30094|30093" default="0" visible="false"/>
+				
+		<setting label="30066" type="action"  action="RunScript($CWD/checkUpdates.py)" option=""/>
+		<setting label="30091" type="action"  action="RunScript($CWD/support.py)"      option="close"/>
+    </category> 
+	
+	<category label="35000">
 		<setting id="SKIN"      type="select" label="30022" source="../../addons/script.video.thelivebox/resources/skins/" mask="/" default="Thumbnails"/>
-		
-		<setting id="EXT_DRIVE" label="30065" type="folder" default="/storage/external_storage/sda1/"/>	
-		
-		<setting                label="30066" type="action"  action="RunScript($CWD/checkUpdates.py,software)" option=""/>
-		<setting                label="30075" type="action"  action="RunScript($CWD/checkUpdates.py,video)"    option="" visible="false"/>
+	
+  	    <setting id="SHOW_CONFIGURE"     type="bool"   label="35001" default="true"  visible="true"/>
+  	    <setting id="SHOW_REFRESH"       type="bool"   label="35002" default="true"  visible="true"/>
+  	    <setting id="SHOW_DOWNLOAD"      type="bool"   label="35003" default="true"  visible="true"/>
+  	    <setting id="SHOW_VIMEO"         type="bool"   label="35004" default="true"  visible="true"/>
+  	    <setting id="SHOW_AMAZON"        type="bool"   label="35005" default="true"  visible="true"/>
+  	    <setting id="SHOW_LOCAL"         type="bool"   label="35006" default="true"  visible="true"/>						
     </category> 
 		
 	<category1 label="30041">

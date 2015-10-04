@@ -63,8 +63,6 @@ def doDownload(url, dest, title, referrer='', dp=None):
         utils.DialogOK(title, utils.GETTEXT(30081))
         return
 
-    print resp
-
     try:    content = int(resp.headers['Content-Length'])
     except: content = 0
     

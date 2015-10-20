@@ -60,6 +60,15 @@ def read(filename):
     return content
 
 
+def write(filename, content):
+    if not content:
+        return
+
+    f = file(filename, 'w')
+    f.write(content)
+    f.close()
+
+
 def readlines(filename):
     lines = read(filename)
     lines = lines.replace('\r', '')

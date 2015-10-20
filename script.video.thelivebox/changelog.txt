@@ -1,3 +1,12 @@
+v1.0.0.16
+    - removed verison number from dialog header
+    - complete of re-write download and playback logic to allow playlists
+    - playlist functionality file (src file containing multiple entires)
+    - download folder images and descriptions
+    - improved image handling in various themes
+    - prompt to play local copy of Amazon files if they exists
+
+
 v1.0.0.15
     - launch remote support
     - select which options to display

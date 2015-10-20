@@ -1,3 +1,7 @@
+v1.0.0.18
+    - playback logic for script playback requests
+    - script v.10.0.16 support
+
 v1.0.0.17
     - script v1.0.0.15 compatibility
     - updated for downloading model rather than streaming

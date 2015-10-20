@@ -143,16 +143,16 @@ def Notify(message, length=10000):
 
 def DialogOK(line1, line2='', line3=''):
     d = xbmcgui.Dialog()
-    d.ok(TITLE + ' - ' + VERSION, line1, line2 , line3)
+    d.ok(TITLE, line1, line2 , line3)
 
 
 
 def DialogYesNo(line1, line2='', line3='', noLabel=None, yesLabel=None):
     d = xbmcgui.Dialog()
     if noLabel == None or yesLabel == None:
-        return d.yesno(TITLE + ' - ' + VERSION, line1, line2 , line3) == True
+        return d.yesno(TITLE, line1, line2 , line3) == True
     else:
-        return d.yesno(TITLE + ' - ' + VERSION, line1, line2 , line3, noLabel, yesLabel) == True
+        return d.yesno(TITLE, line1, line2 , line3, noLabel, yesLabel) == True
 
 def HideCancelButton():
     xbmc.sleep(250)
@@ -165,7 +165,7 @@ def HideCancelButton():
 def CompleteProgress(dp, percent):
     for i in range(percent, 100):
         dp.update(i)
-        xbmc.sleep(25)
+        xbmc.sleep(10)
     dp.close()
 
 
@@ -271,10 +271,7 @@ def GetVimeoVersion():
 
 def GetHTML(url, maxAge = 86400):
     import cache
-    html = cache.getURL(url, maxSec=5*86400, agent='Firefox')
-    html = html.replace('\n', '')
-    html = html.replace('\r', '')
-    html = html.replace('\t', '')
+    html = cache.getURL(url, maxSec=5*86400, agent='Firefox')   
     return html
 
 
@@ -441,14 +438,44 @@ def isAmazonPlayable(folder):
     return False
 
 
-def isFilePlayable(path):
-    try:
-        ext = path.rsplit('.')[-1]
-        return ext in PLAYABLE
-    except:
-        pass
+def getPlaylistFromLocalSrc(src):
+    videos   = []
+    playlist = sfile.readlines(src)
+    root     = getExternalDrive()
 
-    return False
+    for video in playlist:
+        video = video.strip()
+        if len(video) == 0:
+            continue
+
+        video = os.path.join(root, video)
+        videos.append(video)
+
+    return videos
+
+
+def getFilename(path):
+    try:    
+        path = path.rsplit(os.sep, 1)[-1]
+        path = path.rsplit(DELIMETER, 1)[-1]
+        return path
+    except:
+        return ''
+
+
+def removeExtension(path):
+    try:    return path.rsplit('.', 1)[0]
+    except: path
+
+
+def getExtension(path):
+    try:    return path.rsplit('.')[-1]
+    except: return ''
+
+
+def isFilePlayable(path):
+    try:    return (getExtension(path) in PLAYABLE)
+    except: return False
 
 
 def isPlayable(path):
@@ -507,7 +534,7 @@ def _getAllPlayableFiles(folder, theFiles):
             theFiles[path] = [path, size]
 
 
-def parseFolder(folder, root=None, recurse=True):
+def parseFolder(folder, root=None, subfolders=True):
     items = []
 
     if not folder:
@@ -518,17 +545,18 @@ def parseFolder(folder, root=None, recurse=True):
 
     current, dirs, files = sfile.walk(folder)
 
-    for dir in dirs:        
-        path = os.path.join(current, dir)
-        if dir.endswith('_PLAYALL'):
-            items.append([dir.rsplit('_PLAYALL', 1)[0], path, True, True])
-        elif isPlayable(path):
-            items.append([dir, path, False, True])
+    if subfolders:
+        for dir in dirs:        
+            path = os.path.join(current, dir)
+            if dir.endswith('_PLAYALL'):
+                items.append([dir.rsplit('_PLAYALL', 1)[0], path, True, True])
+            elif isPlayable(path):
+                items.append([dir, path, False, True])
 
     for file in files:
         path = os.path.join(current, file)
         if isPlayable(path):
-            items.append([file.rsplit('.', 1)[0], path, True, False])
+            items.append([removeExtension(file), path, True, False])
 
     return items
 
@@ -569,9 +597,7 @@ def verifySource():
         Log('Creating sources.xml file')
         contents = '<sources><video><default pathversion="1"></default>%s</sources>' % input
 
-    source = sfile.file(source, 'w')
-    source.write(contents)
-    source.close()
+    sfile.write(source, contents)
     
     return False
 
@@ -607,9 +633,7 @@ def updateAdvancedSettings(input):
         Log('Resetting %s with %s' % (filename, input))
         contents = '<advancedsettings>%s</advancedsettings>' % input
 
-    source = sfile.file(source, 'w')
-    source.write(contents)
-    source.close()
+    sfile.write(source, contents)
     
     return False
 
@@ -635,7 +659,7 @@ def getLocalContent(url, ext):
     filename = None
     try:
         if sfile.isfile(url):
-            filename = url.rsplit('.', 1)[0] + '.' + ext
+            filename = removeExtension(url) + '.' + ext
         
         if sfile.isdir(url):
             filename = url + '.' + ext
@@ -652,10 +676,11 @@ def getLocalContent(url, ext):
 def getAmazonContent(url, ext):
     try:
         folder = url.rsplit(DELIMETER, 1)[0]
-        root   = folder + url.replace(folder, '').rsplit('.', 1)[0]
+        root   = folder + removeExtension(url.replace(folder, ''))
 
         nfo = root + '.' + ext
-        nfo = s3.getURL(urllib.quote_plus(nfo))
+        nfo = s3.getURL(urllib.quote_plus(nfo)) 
+        nfo = s3.convertToCloud(nfo)      
 
         plot = GetHTML(nfo, maxAge=28*86400)
 
@@ -669,15 +694,16 @@ def getAmazonContent(url, ext):
 def patchAmazonImage(mode, image, url, infoLabels):
     folder = url.rsplit(DELIMETER, 1)[0]
     files  = s3.getAllFiles(folder, recurse=False)
-    root   = folder + url.replace(folder, '').rsplit('.', 1)[0]
+    root   = folder + removeExtension(url.replace(folder, ''))
 
     for ext in IMG_EXT: 
         img  = root + ext
 
-        if img in files:
+        if img in files:            
+            img = s3.convertToCloud(s3.getURL(urllib.quote_plus(img)))
+            gif = s3.convertToCloud(s3.getURL(urllib.quote_plus(root + '.gif')))
 
-            img = s3.getURL(urllib.quote_plus(img))
-            gif = s3.getURL(urllib.quote_plus(root + '.gif'))
+            infoLabels['Gif'] = img
 
             #Kodi incorrectly handles remote gifs therefore download and store locally
             gifFolder = os.path.join(PROFILE, 'c')
@@ -685,16 +711,13 @@ def patchAmazonImage(mode, image, url, infoLabels):
             filename  = os.path.join(gifFolder, getMD5(url.split('?', 1)[0])) + '.gif'
 
             if sfile.exists(filename):
-                infoLabels['Gif'] = filename
-            else:               
-                import download
-                resp = download.getResponse(gif, 0, '')
-                if resp:
-                    download.download(gif, filename)
+                if sfile.size(filename) > 0:
+                    infoLabels['Gif'] = filename
+            else:   
+                if DownloadIfExists(gif, filename):
                     infoLabels['Gif'] = filename   
-                else:
-                    sfile.file(filename, 'w') #create empty file so we don't check again             
-             
+                else:                    
+                    sfile.file(filename, 'w') #create empty file so we don't check again           
             return img
 
     if mode == AMAZON_FOLDER:
@@ -715,11 +738,139 @@ def patchImage(mode, image, url, infoLabels):
         return ICON
 
     if image == 'DefaultMovies.png' or image == 'DefaultFolder.png':
-        root = url.rsplit('.', 1)[0]
+        root = removeExtension(url)
         for ext in IMG_EXT:            
             img  = root + ext
-            if os.path.exists(img):               
-                infoLabels['Gif']     = root + '.gif'
-                return img
+            if sfile.exists(img):
+                if sfile.exists(root + '.gif'):
+                    infoLabels['Gif'] = root + '.gif'
+                else:
+                    infoLabels['Gif'] = img
+                return img            
 
     return image 
+
+
+def GetTitleAndImage(path):
+    root  = removeExtension(path)
+    title = root.rsplit(os.sep, 1)[-1]
+    title = title.rsplit(DELIMETER, 1)[-1]
+
+    for ext in IMG_EXT:            
+        image = root + ext
+        if sfile.exists(image):               
+            return title.replace('_', ' '), image
+
+    return title.replace('_', ' '), ICON
+
+
+def DownloadIfExists(url, dst):
+    import download
+    if not download.getResponse(url, 0, ''):
+        return False
+
+    download.download(url, dst)
+    return True
+
+
+def DoDownload(name, dst, src, image=None, orignalSrc=None, progressClose=True):
+    import download
+    import s3
+    import sfile
+
+    dst = dst.replace(os.sep, DELIMETER)
+    src = src.replace(os.sep, DELIMETER)
+
+    if orignalSrc == None or len(orignalSrc) == 0:
+        orignalSrc = src
+
+    temp  = dst + '.temp'
+
+    url = urllib.quote_plus(src)
+    url = s3.getURL(url)
+    url = s3.convertToCloud(url)
+
+    #image no longer used
+    #if image and image.startswith('http'):
+    #    pass
+    #else:
+    #    image = None
+    image = None
+
+    resp = download.getResponse(url, 0, '')
+    if not resp:
+        return 1
+
+    dp = DialogProgress(GETTEXT(30079) % name)
+    download.doDownload(url, temp, name, dp=dp)
+    if progressClose:
+        dp.close()
+
+    if sfile.exists(temp + '.part'): #if part file exists then download has failed
+        return 1
+
+    if not sfile.exists(temp): #download was cancelled SJP
+        return 2
+
+    sfile.remove(dst)
+    sfile.rename(temp, dst)
+
+    src = orignalSrc
+
+    #recursively get dsc files
+    dscFile = removeExtension(dst) + '.%s' % DSC
+    while len(src) > 0:
+        try:
+            plot = getAmazonContent(src, DSC)
+            sfile.write(dscFile, plot)
+
+            newSrc = src.rsplit(DELIMETER, 1)[0]
+            if newSrc == src:
+                break
+
+            src     = newSrc 
+            dscFile = dscFile.rsplit(DELIMETER, 1)[0] + '.%s' % DSC
+
+        except:
+            pass
+
+
+    #original image handling - no longer used
+    if image:            
+        img   = image.rsplit('?', 1)[0]
+        ext   = img.rsplit('.'  , 1)[-1]
+        root  = dst.rsplit('.'  , 1)[0]
+        jpg   = root + '.%s' %  ext
+        gif   = root + '.%s' % 'gif'
+
+        gifURL = s3.getURL(urllib.quote_plus(_src.rsplit('.', 1)[0] + '.gif'))
+        
+        DownloadIfExists(image,  jpg)
+        DownloadIfExists(gifURL, gif)
+
+
+    #recursively get image files
+    src = orignalSrc.rsplit('.', 1)[0]
+    dst = dst.rsplit('.', 1)[0]
+
+    imageTypes = IMG_EXT
+    imageTypes.append('.gif')
+
+    while len(src) > 0:
+        for ext in imageTypes: 
+            image = src + ext
+
+            image = s3.getURL(urllib.quote_plus(image))
+            image = s3.convertToCloud(image)
+
+            DownloadIfExists(image, dst+ext)
+
+        newSrc = src.rsplit(DELIMETER, 1)[0]
+
+        if newSrc == src:    
+            break
+
+        src = newSrc 
+        dst = dst.rsplit(DELIMETER, 1)[0]
+
+    return 0

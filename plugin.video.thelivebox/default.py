@@ -68,6 +68,7 @@ AMAZON_FILE     = utils.AMAZON_FILE
 AMAZON_FOLDER   = utils.AMAZON_FOLDER
 UPDATE_FILE_CHK = utils.UPDATE_FILE_CHK
 UPDATE_FILE     = utils.UPDATE_FILE
+LOCAL_FILE      = utils.LOCAL_FILE
 
 SERVER           = utils.SERVER
 LBVERSION        = utils.LBVERSION
@@ -545,6 +546,39 @@ def RetrieveURL(url, type, isServer):
         AddDir(1, url, 0)
 
 
+def PlayFromScript(url, title, image, mode, window):
+    extDrive = utils.getExternalDrive()
+    amzUrl   = url.replace(extDrive, '')
+
+    if amzUrl.startswith('AMAZON@'):
+        src = amzUrl.replace('AMAZON@', '', 1)
+        url = os.path.join(extDrive, src.lstrip(utils.GetClient()).lstrip(os.sep).lstrip(DELIMETER))
+
+        if sfile.exists(url):
+            downloaded = 0
+        else:
+            try:    downloaded = utils.DoDownload(title, url, src, progressClose=False)
+            except: downloaded = 1
+
+        if downloaded > 0: #not successful
+            if downloaded == 1:#failed NOT cancelled
+                utils.DialogOK(title, utils.GETTEXT(30081))
+            xbmcplugin.setResolvedUrl(int(sys.argv[1]), False, xbmcgui.ListItem())
+            return
+
+    #xbmc.sleep(500)
+
+    liz = xbmcgui.ListItem(title, iconImage=image, thumbnailImage=image)
+
+    liz.setInfo(type="Video", infoLabels={ "Title": title} )
+    liz.setPath(url)
+
+    xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, liz)
+    return    
+
+    #SERVER_FILE AMAZON_FILE LOCAL_FILE
+
+
 def getParams(url):
     params = {}
     url    = url.split('?', 1)[-1]
@@ -562,7 +596,7 @@ def getParams(url):
 
 
 def main():
-    client = utils.GetClient()   
+    client = utils.GetClient()
     params = getParams(sys.argv[2])
     mode   = None
 
@@ -656,6 +690,21 @@ def main():
     elif mode == UPDATE_FILE_CHK:
         CheckForVideoUpdates(client)
 
+
+    elif mode > 10000:
+        try:    url   = urllib.unquote_plus(params['url'])
+        except: url = ''
+
+        try:    title = urllib.unquote_plus(params['title'])
+        except: title = ''
+
+        try:    image = urllib.unquote_plus(params['image'])
+        except: image = ''
+
+        try:    window = urllib.unquote_plus(params['window']).lower() == 'true'
+        except: window = False
+
+        PlayFromScript(url,  title, image, mode-10000, window)        
 
     else:           
         MainList(client)

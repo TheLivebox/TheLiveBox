@@ -95,6 +95,7 @@ def doUpdate(dp):
 
     url = getURL()
     xml = utils.GetHTML(url, maxAge=0)
+    xml = xml.replace('\t', '').replace('\r', '').replace('\n', '')
 
     for addon in addons:
         newer = getNewerVersion(addon, xml)

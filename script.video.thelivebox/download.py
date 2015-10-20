@@ -43,6 +43,7 @@ def getResponse(url, size, referrer):
         resp = urllib2.urlopen(req, timeout=10)
         return resp
     except Exception, e:
+        utils.Log('Error in get response %s' % str(e))
         return None
 
 
@@ -60,6 +61,9 @@ def doDownload(url, dest, title, referrer='', dp=None):
     resp = getResponse(url, 0, referrer)
     
     if not resp:
+        print "******************************************"
+        print url
+        print title
         utils.DialogOK(title, utils.GETTEXT(30081))
         return
 

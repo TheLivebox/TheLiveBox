@@ -99,6 +99,10 @@
 	<string id="30096">your local storage is correctly configured</string>
 	<string id="30097">Delete file</string>
 	<string id="30098">Click to play complete folder</string>		
+	<string id="30099">There appears to be a local copy of this video</string>		
+	<string id="30100">Would you rather play this local version?</string>
+	<string id="30101">There appears to be a local copy of this playlist</string>
+	<string id="30102">No playable videos were found</string>	
 	
 	<string id="35000">Display options</string>
 	<string id="35001">Configure settings</string>

@@ -29,6 +29,8 @@ import xbmcplugin
 import xbmcgui
 
 
+import s3
+import sfile
 import utils
 
 
@@ -59,6 +61,7 @@ UPDATE_FILE_CHK       = utils.UPDATE_FILE_CHK
 UPDATE_FILE           = utils.UPDATE_FILE
 DELETE_LOCAL_FILE     = utils.DELETE_LOCAL_FILE
 
+
 SERVER          = utils.SERVER
 LBVERSION       = utils.LBVERSION
 ADDRESS         = utils.ADDRESS
@@ -72,6 +75,7 @@ SHOW_VIMEO     = utils.SHOW_VIMEO
 SHOW_AMAZON    = utils.SHOW_AMAZON
 SHOW_LOCAL     = utils.SHOW_LOCAL
 
+IMG_EXT = utils.IMG_EXT
 
 
 GETTEXT = utils.GETTEXT
@@ -88,7 +92,9 @@ def NoPlay(reason):
 
 
 def SetResolvedUrl(url, success=True, listItem=None, windowed=True):
-    APPLICATION.setResolvedUrl(url, success=success, listItem=listItem, windowed=windowed)
+    #APPLICATION.setResolvedUrl(url, success=success, listItem=listItem, windowed=windowed)
+    pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
+    xbmc.Player(xbmc.PLAYER_CORE_AUTO).play(pl, windowed=windowed)
 
 
 def GetJSON(params, timeout):
@@ -173,43 +179,51 @@ def _PlayVideo(mode, url, title, image):
 
 
 def PlayResolvedVideo(mode, url, title='', image='', repeatMode=None):
-    img = image
-    if len(img) == 0:
-        img = ICON
+    if len(image) == 0:
+        image = ICON
 
-    label = title
-    if len(label) == 0:
-        label = GETTEXT(30000)
+    if len(title) == 0:
+        title = GETTEXT(30000)
 
     if not repeatMode:
         repeatMode = GetRepeatMode()
 
-    liz = xbmcgui.ListItem(label, iconImage=img, thumbnailImage=img)
+    if mode == VIDEO_ADDON:
+        PlayAddonVideo(title, image, url)
 
-    liz.setInfo(type='Video', infoLabels={'Title': label})
-
-    windowed = utils.getSetting('PLAYBACK') == '1'
-
-    if mode == VIDEO_ADDON or mode == LOCAL_FILE:
-        PlayAddonVideo(url, liz, windowed)
-
-    if mode == SERVER_FILE or mode == AMAZON_FILE:
-        PlayServerVideo(url, liz, windowed)
+    if mode == SERVER_FILE or mode == AMAZON_FILE or mode == LOCAL_FILE:
+        PlayVideoFile(title, image, url, mode)
 
     xbmc.executebuiltin('PlayerControl(%s)' % repeatMode)
         
 
 
-def PlayAddonVideo(url, liz, windowed):
-    SetResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
+def PlayAddonVideo(title, image, url):
+    AddToPlaylist(title, image, url, isFirst=True)
+    
+
+def PlayVideoFile(title, image, url, mode):
+    #if url.startswith('http'):
+    #    pass
+    #else:
+        #addr, port = utils.GetHost()
+
+        #url = urllib.quote_plus(url)
+        #url = 'http://%s:%d/vfs/%s' % (addr, port, url)
+    
+    #utils.Log('Playback URL %s' % url)
+
+    isSrc = url.lower().endswith('.txt') or url.lower().endswith('.%s' % SRC)
+    if isSrc:
+        AddPlaylistToPlaylist(title, image, url, mode, isFirst=True)
+        return
+
+    AddToPlaylist(title, image, url, mode, isFirst=True)
 
 
 def PlayAmazonVideo(mode, url, title, image):
     #if utils.getSetting('DOWNLOAD_LOC') == '1':
     #    return _PlayVideo(mode, url, title, image)
- 
-    import s3
-    import sfile
 
     loc = utils.getDownloadLocation()
 
@@ -221,20 +235,6 @@ def PlayAmazonVideo(mode, url, title, image):
     dst    = os.path.join(loc, url.replace(client, ''))
 
     DownloadFile(title, url, dst, image)
-
-
-def PlayServerVideo(url, liz, windowed):
-    if url.startswith('http'):
-        pass
-    else:
-        addr, port = utils.GetHost()
-
-        #url = urllib.quote_plus(url)
-        #url = 'http://%s:%d/vfs/%s' % (addr, port, url)
-    
-    utils.Log('Playback URL %s' % url)
-    
-    SetResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
 
 
 def getGlobalMenu():
@@ -350,6 +350,100 @@ def ClearCache():
     utils.DialogOK(GETTEXT(30064))
 
 
+def AddPlaylistToPlaylist(title, image, url, mode, isFirst=False):
+    src = url
+
+    playlist = []
+    root     = ''
+
+    while not sfile.exists(src):
+        loc = utils.getDownloadLocation()
+
+        client = utils.GetClient() + s3.DELIMETER        
+        dst    = os.path.join(loc, url.replace(client, ''))
+
+        if sfile.exists(dst):
+            if utils.DialogYesNo(GETTEXT(30101), GETTEXT(30100)):
+                src = dst
+                break
+
+        src = urllib.quote_plus(src)
+        src = s3.getURL(src)
+        src = s3.convertToCloud(src)
+        src = utils.GetHTML(src, maxAge=7*86400)
+
+        src = src.replace('\r', '')
+        src = src.split('\n')
+
+        content = ''
+        root    = 'AMAZON@'
+
+        for video in src:
+            if len(video.strip()) > 0:
+                content += root
+                content += video
+                content += '\r\n'
+        sfile.write(dst, content)
+
+        src  = utils.removeExtension(url)
+        root = utils.removeExtension(dst)
+
+        plotFile = root + '.%s' % DSC
+        plot     = utils.getAmazonContent(url, DSC)
+        sfile.write(plotFile, plot)
+
+        imageTypes = IMG_EXT
+        imageTypes.append('.gif')
+
+        for ext in imageTypes: 
+            image = src + ext
+            image = s3.getURL(urllib.quote_plus(image))
+            image = s3.convertToCloud(image)
+
+            utils.DownloadIfExists(image, root+ext)
+
+        return AddPlaylistToPlaylist(title, image, dst, mode, isFirst)
+
+    playlist = utils.getPlaylistFromLocalSrc(src)
+
+    for video in playlist:
+        utils.Log('Adding to playlist: %s' % video)
+        title, thumb = utils.GetTitleAndImage(video)
+        if not thumb:
+            thumb = image
+
+        try:    AddToPlaylist(title, thumb, video, mode=mode, isFirst=isFirst)
+        except: pass
+
+        isFirst = False
+
+    
+def AddToPlaylist(title, image, url, mode=0, isFirst=False):
+    windowed = utils.getSetting('PLAYBACK') == '1'
+
+    if mode > 0:
+        u  = 'plugin://plugin.video.thelivebox/'
+        u += '?mode=%d'   % (int(mode) + 10000)
+        u += '&url=%s'    % urllib.quote_plus(url)
+        u += '&image=%s'  % urllib.quote_plus(image)
+        u += '&title=%s'  % urllib.quote_plus(title)
+        u += '&window=%s' % urllib.quote_plus(str(windowed))
+        url = u
+
+    pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
+    if isFirst:
+        pl.clear() 
+
+    liz = xbmcgui.ListItem(title, iconImage=image, thumbnailImage=image)
+
+    liz.setInfo(type='Video', infoLabels={'Title': title})
+
+    pl.add(url, liz)
+
+    if isFirst:
+        SetResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
+
+
 def ExaminationRoom():
     videos = GetVimeoVideos()
    
@@ -364,9 +458,6 @@ def ExaminationRoom():
 
 def WaitingRoom():
     videos = GetVimeoVideos()
-
-    pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
-    pl.clear()  
 
     isFirst = True
 
@@ -383,45 +474,52 @@ def WaitingRoom():
         if len(title) == 0:
             title = GETTEXT(30000)
 
-        liz = xbmcgui.ListItem(title, iconImage=image, thumbnailImage=image)
-
-        liz.setInfo(type='Video', infoLabels={'Title': title})
-
-        pl.add(url, liz)
-
-        if isFirst:
-            isFirst  = False
-            windowed = utils.getSetting('PLAYBACK') == '1'
-            SetResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
+        AddToPlaylist(title, image, url, isFirst=isFirst)
+        isFirst = False
 
 
     xbmc.executebuiltin('PlayerControl(%s)' % repeatMode)
 
 
 def PlayFolder(folder):
-    videos = utils.getAllPlayableFiles(folder)
+    videos = utils.parseFolder(folder, subfolders=False)
 
-    pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
-    pl.clear()  
+    realVideos = []
+    for video in videos:
+        video = video[1]
+        if utils.isFilePlayable(video):
+            if utils.getExtension(video) == SRC:
+                playlist = utils.getPlaylistFromLocalSrc(video)
+                for video in playlist:
+                    realVideos.append(video)
+            else:
+                realVideos.append(video)
+
+    if len(realVideos) == 0:
+        utils.DialogOK(GETTEXT(30102))
+        return
+
+    videos = {}
+    for video in realVideos:
+        filename = utils.getFilename(video)
+        if filename in videos:
+            #prefer local duplicates over Amazon
+            if 'AMAZON@' in videos[filename]:
+                videos[filename] = video  
+            else:
+                pass
+        else:
+            videos[filename] = video
 
     isFirst = True
 
     repeatMode = GetRepeatMode()
 
-    title = GETTEXT(30000)
-    image = ICON
-
     for video in videos:
-        liz = xbmcgui.ListItem(title, iconImage=image, thumbnailImage=image)
-
-        liz.setInfo(type='Video', infoLabels={'Title': title})
-
-        pl.add(video, liz)
-
-        if isFirst:
-            isFirst  = False
-            windowed = utils.getSetting('PLAYBACK') == '1'
-            SetResolvedUrl(video, success=True, listItem=liz, windowed=windowed)
+        video = videos[video]
+        title, image = utils.GetTitleAndImage(video)
+        AddToPlaylist(title, image, video, LOCAL_FILE+10000, isFirst)        
+        isFirst = False
 
     xbmc.executebuiltin('PlayerControl(%s)' % repeatMode)
 
@@ -439,19 +537,14 @@ def UpdateFile(url):
 
 
 def Delete(filename):
-    import sfile
-
     files = sfile.related(filename)
     for file in files:
         sfile.delete(file)
 
 
-def DownloadFile(name, _src,  dst, image=None):
-    import download
-    import s3
-    import sfile
-
-    src = _src
+def DownloadFile(name, src, dst, image=None):
+    orignalSrc = src
+    playlist   = False
 
     isSrc = src.lower().endswith('.txt') or src.lower().endswith('.%s' % SRC)
     if isSrc:
@@ -460,84 +553,49 @@ def DownloadFile(name, _src,  dst, image=None):
         src = s3.convertToCloud(src)
         src = utils.GetHTML(src, maxAge=7*86400)
 
+        src = src.replace('\r', '')
+        src = src.split('\n')
+        if len(src) > 1:
+            repeatMode = GetRepeatMode()
+            AddPlaylistToPlaylist(name, image, orignalSrc, AMAZON_FILE, isFirst=True)
+            xbmc.executebuiltin('PlayerControl(%s)' % repeatMode)
+            return
+
+        src = src[0]
+
         #replace extension on destination
         dst = dst.rsplit('.', 1)[0] + '.' + src.rsplit('.', 1)[-1]
 
     autoPlay   = True
     repeatMode = False
     thumb      = ICON
+    exists     = sfile.exists(dst)
 
-    if sfile.exists(dst):
-        autoPlay   = True
-        repeatMode = GetRepeatMode()
-        root       = dst.rsplit('.', 1)[0]
-        jpg        = root + '.jpg'
-        png        = root + '.png'
-        if sfile.exists(jpg):
-            thumb = jpg
-        elif sfile.exists(png):
-            thumb = png
+    if exists:
+        if not utils.DialogYesNo(GETTEXT(30099), GETTEXT(30100)):
+            exists = False
+        else:
+            autoPlay   = True
+            repeatMode = GetRepeatMode()       
+            name, thumb = utils.GetTitleAndImage(dst)
 
-    else:
+    if not exists:
         autoPlay = False
         if utils.DialogYesNo(utils.GETTEXT(30085), utils.GETTEXT(30086)):
             autoPlay   = True
             repeatMode = GetRepeatMode()
 
-        temp  = dst + '.temp'
+        downloaded = utils.DoDownload(name, dst, src, image, orignalSrc)
 
-        url = urllib.quote_plus(src)
-        url = s3.getURL(url)
-        url = s3.convertToCloud(url)
-
-        if image and image.startswith('http'):
-            pass
-        else:
-            image = None
-
-        dp = utils.DialogProgress(GETTEXT(30079) % name)
-        download.doDownload(url, temp, name, dp=dp)
-        dp.close()
-
-        if sfile.exists(temp + '.part'): #if part file exists then download has failed
-            utils.DialogOK(name, utils.GETTEXT(30081))
+        if downloaded > 0: #not successful
+            if downloaded == 1:#failed NOT cancelled         
+                utils.DialogOK(name, utils.GETTEXT(30081))
             return
-
-        if not sfile.exists(temp):
-            return
-
-        sfile.remove(dst)
-        sfile.rename(temp, dst)
-
-        try:
-            plot = utils.getAmazonContent(_src, DSC)
-            if len(plot) > 0:      
-                plotFile = dst.rsplit('.', 1)[0] + '.%s' % DSC
-                f = sfile.file(plotFile, 'w')
-                f.write(plot)
-                f.close()
-        except:
-            pass
-
-        if image:            
-            img   = image.rsplit('?', 1)[0]
-            ext   = img.rsplit('.'  , 1)[-1]
-            root  = dst.rsplit('.'  , 1)[0]
-            jpg   = root + '.%s' %  ext
-            gif   = root + '.%s' % 'gif'
-
-            download.download(image, jpg)
-            thumb = jpg
-
-            gifURL = s3.getURL(urllib.quote_plus(_src.rsplit('.', 1)[0] + '.gif'))
-            resp = download.getResponse(gifURL, 0, '')
-            if resp:
-                download.download(gifURL, gif)
 
     if autoPlay:
         xbmcgui.Window(10000).setProperty('LB_AUTOPLAY', 'True')
         APPLICATION.containerRefresh()
-        PlayResolvedVideo(LOCAL_FILE, dst, name, thumb, repeatMode)        
+        PlayResolvedVideo(LOCAL_FILE, dst, name, thumb, repeatMode)
     else:
         utils.DialogOK(name, utils.GETTEXT(30082))
         APPLICATION.containerRefresh()
@@ -745,7 +803,6 @@ def main(params):
 
 
     elif mode == UPDATE_FILE_CHK:
-        import sfile
         extDrive = utils.getExternalDrive()
         if not sfile.exists(extDrive):
             APPLICATION.closeBusy()

@@ -54,7 +54,7 @@ def checkCacheDir():
     sfile.makedirs(CacheDir)
 
 
-def getURLNoCache(url, agent=None, tidy=True):
+def getURLNoCache(url, agent=None):
     req = urllib2.Request(url)
     if agent:
         req.add_header('User-Agent', agent)
@@ -63,13 +63,12 @@ def getURLNoCache(url, agent=None, tidy=True):
     html     = response.read()
     response.close()
 
-    if tidy:
-        html = html.replace('\r', '').replace('\n', '').replace('\t', '')
+    html = html.replace('&apos;', '\'')
 
     return html
 
 
-def getURL(url, maxSec=0, agent=None, tidy=True):
+def getURL(url, maxSec=0, agent=None):
     purgeCache()
     
     if url == None:
@@ -81,7 +80,7 @@ def getURL(url, maxSec=0, agent=None, tidy=True):
             if (time.time() - timestamp) <= maxSec:
                 return getCachedData(url)
 			
-    data = getURLNoCache(url, agent, tidy)
+    data = getURLNoCache(url, agent)
     addToCache(url, data)
     return data
 

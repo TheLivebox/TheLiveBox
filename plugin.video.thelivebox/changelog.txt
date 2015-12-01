@@ -1,6 +1,9 @@
+v1.0.0.19
+    - script v1.0.0.17 support
+
 v1.0.0.18
     - playback logic for script playback requests
-    - script v.10.0.16 support
+    - script v1.0.0.16 support
 
 v1.0.0.17
     - script v1.0.0.15 compatibility

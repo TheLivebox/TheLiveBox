@@ -6,7 +6,9 @@
 		<setting id="DEMO"     type="bool"   label="30047" default="false" visible="false"/>
 		
 		<setting id="CLIENT"    type="text"   label="30016" default=""/>		
-		<setting id="PLAYBACK"  type="enum"   label="30030" lvalues="30031|30032" default="0"/>
+		
+		<setting id="PLAYBACK_MODE"   type="enum"   label="30030" lvalues="30031|30032"             default="0"/>
+        <setting id="PLAYBACK_LIMIT"  type="enum"   label="35100" lvalues="35101|35102|35103|35104" default="0"/>		
 				
 		<setting id="BOOTVIDEO" type="bool"   label="30017" default="true"/>
 		
@@ -26,7 +28,8 @@
   	    <setting id="SHOW_DOWNLOAD"      type="bool"   label="35003" default="true"  visible="true"/>
   	    <setting id="SHOW_VIMEO"         type="bool"   label="35004" default="true"  visible="true"/>
   	    <setting id="SHOW_AMAZON"        type="bool"   label="35005" default="true"  visible="true"/>
-  	    <setting id="SHOW_LOCAL"         type="bool"   label="35006" default="true"  visible="true"/>						
+  	    <setting id="SHOW_LOCAL"         type="bool"   label="35006" default="true"  visible="true"/>
+  	    <setting id="SHOW_HIDDEN"        type="bool"   label="35007" default="false" visible="true"/>
     </category> 
 		
 	<category1 label="30041">

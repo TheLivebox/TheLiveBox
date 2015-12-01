@@ -43,7 +43,7 @@ def getResponse(url, size, referrer):
         resp = urllib2.urlopen(req, timeout=10)
         return resp
     except Exception, e:
-        utils.Log('Error in get response %s' % str(e))
+        utils.Log('Error in get response %s : %s' % (url, str(e)))
         return None
 
 
@@ -57,14 +57,12 @@ def download(url, dest, title=None):
     xbmc.executebuiltin(cmd)
 
 
-def doDownload(url, dest, title, referrer='', dp=None):
+def doDownload(url, dest, title, referrer='', dp=None, silent=False):
     resp = getResponse(url, 0, referrer)
     
     if not resp:
-        print "******************************************"
-        print url
-        print title
-        utils.DialogOK(title, utils.GETTEXT(30081))
+        if not silent:       
+            utils.DialogOK(title, utils.GETTEXT(30081))
         return
 
     try:    content = int(resp.headers['Content-Length'])
@@ -77,7 +75,8 @@ def doDownload(url, dest, title, referrer='', dp=None):
         utils.Log('Download is resumable')
     
     if content < 1:
-        utils.DialogOK(title, utils.GETTEXT(30081))
+        if not silent:
+            utils.DialogOK(title, utils.GETTEXT(30081))
         return
 
     import s3
@@ -106,16 +105,19 @@ def doDownload(url, dest, title, referrer='', dp=None):
     chunks = []
     
     while True:
-        if xbmc.abortRequested or (dp and dp.iscanceled()):
+        abortRequested = xbmcgui.Window(10000).getProperty('LB_XBMC_ABORTED') == 'true'
+        if abortRequested or (dp and dp.iscanceled()):
             f.close()
-            sfile.remove(dest)
-            sfile.remove(dest+'.part')
+            utils.tidyUp(dest)            
             return
-
+        
         downloaded = total
+
         for c in chunks:
             downloaded += len(c)
+
         percent = min(100 * downloaded / content, 100)
+
         if percent >= notify:
             notify += 10
 
@@ -127,7 +129,7 @@ def doDownload(url, dest, title, referrer='', dp=None):
 
         try:        
             chunk  = resp.read(size)
-            if not chunk:                
+            if not chunk:   
                 if percent < 99:                   
                     error = True
                 else:                     
@@ -138,7 +140,7 @@ def doDownload(url, dest, title, referrer='', dp=None):
                 
                     f.close()
                     utils.Log('%s download complete' % (dest))
-                    sfile.remove(dest+'.part')                    
+                    sfile.remove(dest+'.part') 
                     return
 
         except Exception, e:
@@ -180,7 +182,8 @@ def doDownload(url, dest, title, referrer='', dp=None):
             if (not resumable and resume >= 10) or resume >= 100:
                 #Give up!
                 utils.Log('%s download canceled - too many error whilst downloading' % dest)
-                utils.DialogOK(dest, '' , 'Download failed')
+                if not silent:
+                    utils.DialogOK(dest, '' , 'Download failed')
                 return
             
             resume += 1

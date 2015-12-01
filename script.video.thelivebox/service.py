@@ -91,6 +91,7 @@ class MyMonitor(xbmc.Monitor):
         self.settings['SHOW_VIMEO']     = ''
         self.settings['SHOW_AMAZON']    = ''
         self.settings['SHOW_LOCAL']     = ''
+        self.settings['SHOW_HIDDEN']    = ''
 
         self._onSettingsChanged(init=True)
 
@@ -145,5 +146,7 @@ while (not xbmc.abortRequested):
   
 
 del monitor
+
+xbmcgui.Window(10000).setProperty('LB_XBMC_ABORTED', 'true')
 
 scanner.stop()

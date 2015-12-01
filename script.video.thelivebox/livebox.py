@@ -60,6 +60,7 @@ LOCAL_PLAYABLE_FOLDER = utils.LOCAL_PLAYABLE_FOLDER
 UPDATE_FILE_CHK       = utils.UPDATE_FILE_CHK
 UPDATE_FILE           = utils.UPDATE_FILE
 DELETE_LOCAL_FILE     = utils.DELETE_LOCAL_FILE
+DELETE_LOCAL_FOLDER   = utils.DELETE_LOCAL_FOLDER
 
 
 SERVER          = utils.SERVER
@@ -74,6 +75,7 @@ SHOW_DOWNLOAD  = utils.SHOW_DOWNLOAD
 SHOW_VIMEO     = utils.SHOW_VIMEO
 SHOW_AMAZON    = utils.SHOW_AMAZON
 SHOW_LOCAL     = utils.SHOW_LOCAL
+SHOW_HIDDEN    = utils.SHOW_HIDDEN
 
 IMG_EXT = utils.IMG_EXT
 
@@ -92,9 +94,16 @@ def NoPlay(reason):
 
 
 def SetResolvedUrl(url, success=True, listItem=None, windowed=True):
+    skin = utils.getSetting('SKIN')
+    if skin == 'Thumbnails':
+        windowed = False
+    if skin == 'Thumbnails + Zoom':
+        windowed = False
+
     #APPLICATION.setResolvedUrl(url, success=success, listItem=listItem, windowed=windowed)
     pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
     xbmc.Player(xbmc.PLAYER_CORE_AUTO).play(pl, windowed=windowed)
+    utils.initialisePlaybackTimer()
 
 
 def GetJSON(params, timeout):
@@ -263,7 +272,11 @@ def AddFolderItems(_folder):
     if not SHOW_LOCAL:
         return
 
-    items = utils.parseFolder(_folder, GETTEXT(30058))
+    ignore = ['_', '.']
+    if SHOW_HIDDEN:
+        ignore = []
+
+    items = utils.parseFolder(_folder, GETTEXT(30058), ignore=ignore)
     if len(items) == 0:
         return
 
@@ -285,16 +298,18 @@ def AddFolderItems(_folder):
             if isFolder:
                 menu = getGlobalMenu()
                 menu.append((GETTEXT(30062), '?mode=%d&url=%s' % (LOCAL_PLAYABLE_FOLDER, url)))
-                AddDir(label, LOCAL_PLAYABLE_FOLDER, url=url, image=file,   isFolder=False, isPlayable=True,  desc=playFolder,   plot=plot, contextMenu=menu, replaceItems=True)
+                menu.append((GETTEXT(30103), '?mode=%d&url=%s' % (DELETE_LOCAL_FOLDER,   url)))
+                AddDir(label, LOCAL_PLAYABLE_FOLDER, url=url, image=file, isFolder=False, isPlayable=True, desc=playFolder, plot=plot, contextMenu=menu, replaceItems=True)
             else:
                 menu = getGlobalMenu()
                 menu.append((GETTEXT(30063), '?mode=%d&url=%s' % (LOCAL_PLAYABLE_FOLDER, _folder)))
                 menu.append((GETTEXT(30097), '?mode=%d&url=%s' % (DELETE_LOCAL_FILE, url)))
-                AddDir(label, LOCAL_FILE,            url=url, image=file,   isFolder=False, isPlayable=True,  desc=playVideo,    plot=plot, contextMenu=menu, replaceItems=True)
+                AddDir(label, LOCAL_FILE, url=url, image=file, isFolder=False, isPlayable=True, desc=playVideo, plot=plot, contextMenu=menu, replaceItems=True)
         else:
             menu = getGlobalMenu()
             menu.append((GETTEXT(30062), '?mode=%d&url=%s' % (LOCAL_PLAYABLE_FOLDER, url)))
-            AddDir(label, LOCAL_FOLDER,              url=url, image=folder, isFolder=True,  isPlayable=False, desc=browseFolder, plot=plot, contextMenu=menu, replaceItems=True)
+            menu.append((GETTEXT(30103), '?mode=%d&url=%s' % (DELETE_LOCAL_FOLDER,   url)))
+            AddDir(label, LOCAL_FOLDER, url=url, image=folder, isFolder=True, isPlayable=False, desc=browseFolder, plot=plot, contextMenu=menu, replaceItems=True)
 
 
 def MainList():
@@ -366,6 +381,8 @@ def AddPlaylistToPlaylist(title, image, url, mode, isFirst=False):
             if utils.DialogYesNo(GETTEXT(30101), GETTEXT(30100)):
                 src = dst
                 break
+            else:
+                utils.delete(dst, APPLICATION)
 
         src = urllib.quote_plus(src)
         src = s3.getURL(src)
@@ -402,6 +419,7 @@ def AddPlaylistToPlaylist(title, image, url, mode, isFirst=False):
 
             utils.DownloadIfExists(image, root+ext)
 
+
         return AddPlaylistToPlaylist(title, image, dst, mode, isFirst)
 
     playlist = utils.getPlaylistFromLocalSrc(src)
@@ -419,7 +437,7 @@ def AddPlaylistToPlaylist(title, image, url, mode, isFirst=False):
 
     
 def AddToPlaylist(title, image, url, mode=0, isFirst=False):
-    windowed = utils.getSetting('PLAYBACK') == '1'
+    windowed = utils.getSetting('PLAYBACK_MODE') == '1'
 
     if mode > 0:
         u  = 'plugin://plugin.video.thelivebox/'
@@ -441,7 +459,7 @@ def AddToPlaylist(title, image, url, mode=0, isFirst=False):
     pl.add(url, liz)
 
     if isFirst:
-        SetResolvedUrl(url, success=True, listItem=liz, windowed=windowed)
+        SetResolvedUrl(url, success=True, listItem=liz, windowed=windowed)        
 
 
 def ExaminationRoom():
@@ -536,12 +554,6 @@ def UpdateFile(url):
     DownloadFile(name, src,  dst)
 
 
-def Delete(filename):
-    files = sfile.related(filename)
-    for file in files:
-        sfile.delete(file)
-
-
 def DownloadFile(name, src, dst, image=None):
     orignalSrc = src
     playlist   = False
@@ -564,7 +576,7 @@ def DownloadFile(name, src, dst, image=None):
         src = src[0]
 
         #replace extension on destination
-        dst = dst.rsplit('.', 1)[0] + '.' + src.rsplit('.', 1)[-1]
+        dst = sfile.removeextension(dst) + '.' + sfile.getextension(src)
 
     autoPlay   = True
     repeatMode = False
@@ -574,6 +586,7 @@ def DownloadFile(name, src, dst, image=None):
     if exists:
         if not utils.DialogYesNo(GETTEXT(30099), GETTEXT(30100)):
             exists = False
+            utils.delete(dst, APPLICATION)
         else:
             autoPlay   = True
             repeatMode = GetRepeatMode()       
@@ -581,11 +594,14 @@ def DownloadFile(name, src, dst, image=None):
 
     if not exists:
         autoPlay = False
-        if utils.DialogYesNo(utils.GETTEXT(30085), utils.GETTEXT(30086)):
+        if not utils.DialogYesNo(GETTEXT(30085), GETTEXT(30086), noLabel=GETTEXT(30111), yesLabel=GETTEXT(30112)):
             autoPlay   = True
             repeatMode = GetRepeatMode()
 
-        downloaded = utils.DoDownload(name, dst, src, image, orignalSrc)
+        if autoPlay:
+            downloaded = 0
+        else:
+            downloaded = utils.DoDownload(name, dst, src, image, orignalSrc)
 
         if downloaded > 0: #not successful
             if downloaded == 1:#failed NOT cancelled         
@@ -593,9 +609,12 @@ def DownloadFile(name, src, dst, image=None):
             return
 
     if autoPlay:
+        src = 'AMAZON@' + src       
+        #download any related files??
+        AddToPlaylist(name, thumb, src, AMAZON_FILE, isFirst=True)
+        xbmc.executebuiltin('PlayerControl(%s)' % repeatMode)
         xbmcgui.Window(10000).setProperty('LB_AUTOPLAY', 'True')
         APPLICATION.containerRefresh()
-        PlayResolvedVideo(LOCAL_FILE, dst, name, thumb, repeatMode)
     else:
         utils.DialogOK(name, utils.GETTEXT(30082))
         APPLICATION.containerRefresh()
@@ -747,10 +766,14 @@ def main(params):
         except Exception, e:
             utils.Log('Error in LOCAL_FILE mode - %s' % str(e))
 
+
     elif mode == DELETE_LOCAL_FILE:
-        Delete(url)
-        APPLICATION.containerRefresh()
-        
+        utils.delete(url, APPLICATION)
+
+
+    elif mode == DELETE_LOCAL_FOLDER:
+        utils.delete(url, APPLICATION)
+
 
     elif mode == SERVER_FOLDER or mode == AMAZON_FOLDER:
         try:    
@@ -829,8 +852,8 @@ def main(params):
         mode  = GETTEXT(30045)
 
 
-    title  = '%s [COLOR=blue]-[/COLOR] v%s' % (GETTEXT(30000), utils.VERSION) + ' [COLOR=blue]-[/COLOR] ' + mode
-    footer = '%s [COLOR=blue]-[/COLOR] v%s' % (GETTEXT(30000), utils.VERSION) + ' [COLOR=blue]-[/COLOR] ' + mode
+    title  = '%s [COLOR=blue]-[/COLOR] v%s' % (GETTEXT(30000), utils.VERSION)# + ' [COLOR=blue]-[/COLOR] ' + mode
+    footer = '%s [COLOR=blue]-[/COLOR] v%s' % (GETTEXT(30000), utils.VERSION)# + ' [COLOR=blue]-[/COLOR] ' + mode
 
     APPLICATION.setProperty('LB_TITLE',    title)
     APPLICATION.setProperty('LB_MAINDESC', GETTEXT(30019))

@@ -85,8 +85,8 @@
 	<string id="30082">File has successfully downloaded</string>
 	<string id="30083">[COLOR springgreen] (Update)[/COLOR]</string>
 	<string id="30084">[COLOR springgreen] (New)[/COLOR]</string>
-	<string id="30085">Do you want to automatically play the</string>
-	<string id="30086">video once it has been downloaded?</string>
+	<string id="30085">Do you want to play the video or just download it?</string>
+	<string id="30086"></string>
 	<string id="30087">Please ensure your local storage is connected</string>
 	<string id="30088">and configued correctly in the settings</string>
 	<string id="30089">Previous menu</string>
@@ -103,6 +103,16 @@
 	<string id="30100">Would you rather play this local version?</string>
 	<string id="30101">There appears to be a local copy of this playlist</string>
 	<string id="30102">No playable videos were found</string>	
+	<string id="30103">Delete folder</string>
+	<string id="30104">The selected folder is not empty</string>
+	<string id="30105">Are you sure you still wish to delete it?</string>
+	<string id="30106">The configured playback limit of %s</string>
+	<string id="30107">has now been reached</string>
+	<string id="30108">Would you like to stop or resume playback?</string>
+	<string id="30109">Stop</string>
+	<string id="30110">Resume</string>
+	<string id="30111">Play</string>
+	<string id="30112">Download</string>
 	
 	<string id="35000">Display options</string>
 	<string id="35001">Configure settings</string>
@@ -111,4 +121,11 @@
 	<string id="35004">Show Vimeo content</string>
 	<string id="35005">Browse online</string>
 	<string id="35006">Browse local files</string>	
+	<string id="35007">Show hidden folders</string>
+	
+	<string id="35100">Playback limit</string>	
+	<string id="35101">4 hours</string>
+	<string id="35102">8 hours</string>
+	<string id="35103">12 hours</string>
+	<string id="35104">24 hours</string>		
 </strings>

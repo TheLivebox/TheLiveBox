@@ -54,7 +54,7 @@
      			<description>Logo</description>
 				<posx>26</posx>
 				<posy>5</posy>
-				<width>100</width>
+				<width>80</width>
 				<height>80</height>
 				<texturenofocus>lbp_logo.png</texturenofocus>
                 <texturefocus>lbp_logo.png</texturefocus>				

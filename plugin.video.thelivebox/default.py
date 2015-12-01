@@ -82,6 +82,7 @@ SHOW_DOWNLOAD  = utils.SHOW_DOWNLOAD
 SHOW_VIMEO     = utils.SHOW_VIMEO
 SHOW_AMAZON    = utils.SHOW_AMAZON
 SHOW_LOCAL     = utils.SHOW_LOCAL
+SHOW_HIDDEN    = utils.SHOW_HIDDEN
 
 
 DELIMETER = utils.DELIMETER
@@ -209,7 +210,11 @@ def AddAmazonItems(index, folder, menu):
 
 
 def AddFolderItems(index, folder, menu):
-    items = utils.parseFolder(folder, GETTEXT(30057))
+    ignore = ['_', '.']
+    if SHOW_HIDDEN:
+        ignore = []
+    
+    items = utils.parseFolder(folder, GETTEXT(30057), ignore=ignore)
     if len(items) == 0:
         return
 
@@ -218,6 +223,8 @@ def AddFolderItems(index, folder, menu):
 
     file   = 'DefaultMovies.png'
     folder = 'DefaultFolder.png'
+
+    
 
     for item in items:
         label      = item[0]
@@ -228,7 +235,7 @@ def AddFolderItems(index, folder, menu):
             AddDir(index, label, SERVER_FILE,   url=url, image=file,   isFolder=False, isPlayable=True, desc=playVideo,    contextMenu=menu)
         else:
             AddDir(index, label, SERVER_FOLDER, url=url, image=folder, isFolder=True, isPlayable=False, desc=browseFolder, contextMenu=menu)
-
+            
         index += 1
 
 
@@ -545,38 +552,54 @@ def RetrieveURL(url, type, isServer):
 
         AddDir(1, url, 0)
 
-
 def PlayFromScript(url, title, image, mode, window):
-    extDrive = utils.getExternalDrive()
-    amzUrl   = url.replace(extDrive, '')
+    downloadAndPlay = True
 
+    extDrive = utils.getExternalDrive()
+    amzUrl   = url.replace(extDrive, '') 
+      
     if amzUrl.startswith('AMAZON@'):
         src = amzUrl.replace('AMAZON@', '', 1)
-        url = os.path.join(extDrive, src.lstrip(utils.GetClient()).lstrip(os.sep).lstrip(DELIMETER))
+        dst = src.lstrip(utils.GetClient()).lstrip(os.sep).lstrip(DELIMETER)
 
-        if sfile.exists(url):
+        if dst.startswith('_update'):
+            dst = dst.lstrip('_update').lstrip(os.sep).lstrip(DELIMETER)
+
+        dst = os.path.join(extDrive, dst)
+        url = dst
+
+        if sfile.exists(dst):
             downloaded = 0
         else:
-            try:    downloaded = utils.DoDownload(title, url, src, progressClose=False)
-            except: downloaded = 1
+            if downloadAndPlay:
+                downloaded  = 0 #success
+                downloadURL = url
+                #give playback a 5 second head start before download
+                #utils.DoThreadedDownload(title, downloadURL, src)
+                url = urllib.quote_plus(src)
+                url = s3.getURL(url)
+                url = s3.convertToCloud(url)
+            else:
+                try:    downloaded = utils.DoDownload(title, dst, src, progressClose=False)
+                except: downloaded = 1
 
         if downloaded > 0: #not successful
-            if downloaded == 1:#failed NOT cancelled
+            if downloaded == 1:#failed NOT cancelled, cancelled doesn't need to inform user
                 utils.DialogOK(title, utils.GETTEXT(30081))
             xbmcplugin.setResolvedUrl(int(sys.argv[1]), False, xbmcgui.ListItem())
             return
 
-    #xbmc.sleep(500)
-
     liz = xbmcgui.ListItem(title, iconImage=image, thumbnailImage=image)
 
-    liz.setInfo(type="Video", infoLabels={ "Title": title} )
+    liz.setInfo(type='Video', infoLabels={'Title':title} )
     liz.setPath(url)
 
     xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, liz)
-    return    
 
-    #SERVER_FILE AMAZON_FILE LOCAL_FILE
+    if downloadAndPlay:
+        xbmc.sleep(5*1000)
+        utils.DoThreadedDownload(title, downloadURL, src)
+   
 
 
 def getParams(url):

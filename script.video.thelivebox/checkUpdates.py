@@ -181,6 +181,7 @@ def getCurrentChecksum():
     try:
         path = os.path.join('special://home', 'addons', REPO, 'addon.xml')
         xml  = sfile.read(path)
+
         url  = re.compile('<checksum>(.+?)</checksum>').search(xml).group(1)
 
         import urllib2

@@ -37,7 +37,7 @@ HOME    = ADDON.getAddonInfo('path')
 PROFILE = ADDON.getAddonInfo('profile')
 TITLE   = ADDON.getAddonInfo('name')
 VERSION = ADDON.getAddonInfo('version')
-ICON    = os.path.join(HOME, 'icon.png')
+ICON    = os.path.join(HOME, 'logo1.png')
 FANART  = os.path.join(HOME, 'fanart.jpg')
 
 HOME = HOME.replace('storage/emulated/0', 'sdcard') #for Android
@@ -60,6 +60,7 @@ LOCAL_PLAYABLE_FOLDER = 1400
 UPDATE_FILE_CHK       = 1500
 UPDATE_FILE           = 1600
 DELETE_LOCAL_FILE     = 1700
+DELETE_LOCAL_FOLDER   = 1800
 
 SERVER          = 5100
 LBVERSION       = 5200
@@ -119,6 +120,7 @@ SHOW_DOWNLOAD  = getSetting('SHOW_DOWNLOAD')  == 'true'
 SHOW_VIMEO     = getSetting('SHOW_VIMEO')     == 'true'
 SHOW_AMAZON    = getSetting('SHOW_AMAZON')    == 'true'
 SHOW_LOCAL     = getSetting('SHOW_LOCAL')     == 'true'
+SHOW_HIDDEN    = getSetting('SHOW_HIDDEN')    == 'true'
 
 
 
@@ -132,7 +134,7 @@ def Log(text):
         else:
             xbmc.log(output, xbmc.LOGDEBUG)
     except:
-        pass
+        pass        
 
 
 def Notify(message, length=10000):
@@ -208,7 +210,7 @@ def GetAddonMessage(addr, port, msg, params = {}, timeout=60):
         result  = resp['result']
         return result['files'][0]['label']
     except Exception, e:
-        utils.Log('ERROR in GetAddonMessage %s' % str(e))
+        Log('ERROR in GetAddonMessage %s' % str(e))
         pass
 
 
@@ -478,29 +480,39 @@ def isFilePlayable(path):
     except: return False
 
 
-def isPlayable(path):
+def isPlayable(path, ignore):
     if not sfile.exists(path):
         return False
 
     if sfile.isfile(path):
         playable = isFilePlayable(path)
         return playable
+
+    try:
+        if sfile.getfilename(path)[0] in ignore:
+            return False
+    except:
+        pass
          
     current, dirs, files = sfile.walk(path)
 
     for file in files:
-        if isPlayable(os.path.join(current, file)):
+        if isPlayable(os.path.join(current, file), ignore):
             return True
 
-    for dir in dirs:        
-        if isPlayable(os.path.join(current, dir)):
-            return True
+    for dir in dirs:
+        try: 
+            if isPlayable(os.path.join(current, dir), ignore):
+                return True
+        except:
+            pass
 
     return False
 
 
 def getExternalDrive():
     return getSetting('EXT_DRIVE')
+
 
 def getDownloadLocation():
     if getSetting('DOWNLOAD_LOC') == '1':
@@ -529,17 +541,17 @@ def _getAllPlayableFiles(folder, theFiles):
 
     for file in files:
         path = os.path.join(current, file)
-        if isPlayable(path):
+        if isPlayable(path, ignore=[]):
             size = sfile.size(path)
             theFiles[path] = [path, size]
 
 
-def parseFolder(folder, root=None, subfolders=True):
+def parseFolder(folder, root=None, subfolders=True, ignore=[]):
     items = []
 
     if not folder:
         folder = getExternalDrive()
-        if isPlayable(folder):
+        if isPlayable(folder, ignore):
             items.append([root, folder, False, True])
         return items
 
@@ -550,12 +562,12 @@ def parseFolder(folder, root=None, subfolders=True):
             path = os.path.join(current, dir)
             if dir.endswith('_PLAYALL'):
                 items.append([dir.rsplit('_PLAYALL', 1)[0], path, True, True])
-            elif isPlayable(path):
+            elif isPlayable(path, ignore):
                 items.append([dir, path, False, True])
 
     for file in files:
         path = os.path.join(current, file)
-        if isPlayable(path):
+        if isPlayable(path, ignore):
             items.append([removeExtension(file), path, True, False])
 
     return items
@@ -571,8 +583,9 @@ def _removePartFiles(folder, recurse=True):
     for file in files:
         if file.endswith('.part'):
             file = os.path.join(current, file)
-            sfile.remove(file)
-            sfile.remove(file.rsplit('.part', 1)[0])
+            tidyUp(file.rsplit('.part', 1)[0])
+            #sfile.remove(file)
+            #sfile.remove(file.rsplit('.part', 1)[0])
 
     if not recurse:
         return
@@ -773,7 +786,7 @@ def DownloadIfExists(url, dst):
     return True
 
 
-def DoDownload(name, dst, src, image=None, orignalSrc=None, progressClose=True):
+def DoDownload(name, dst, src, image=None, orignalSrc=None, progressClose=True, silent=False):
     import download
     import s3
     import sfile
@@ -801,15 +814,19 @@ def DoDownload(name, dst, src, image=None, orignalSrc=None, progressClose=True):
     if not resp:
         return 1
 
-    dp = DialogProgress(GETTEXT(30079) % name)
-    download.doDownload(url, temp, name, dp=dp)
-    if progressClose:
+    dp = None
+    if not silent:
+        dp = DialogProgress(GETTEXT(30079) % name)
+
+    download.doDownload(url, temp, name, dp=dp, silent=silent)
+    
+    if dp and progressClose:
         dp.close()
 
     if sfile.exists(temp + '.part'): #if part file exists then download has failed
         return 1
 
-    if not sfile.exists(temp): #download was cancelled SJP
+    if not sfile.exists(temp): #download was cancelled
         return 2
 
     sfile.remove(dst)
@@ -874,3 +891,101 @@ def DoDownload(name, dst, src, image=None, orignalSrc=None, progressClose=True):
         dst = dst.rsplit(DELIMETER, 1)[0]
 
     return 0
+
+import threading
+class Downloader(threading.Thread):
+     def __init__(self, name, dst, src):
+         super(Downloader, self).__init__()
+         self.name  = name
+         self.dst   = dst
+         self.src   = src
+
+     def run(self):
+         Log('Starting threaded downloader')
+         Log('name    = %s' % self.name)
+         Log('dst     = %s' % self.dst)
+         Log('src     = %s' % self.src)
+
+         if sfile.exists(self.dst + '.temp.part'): #if temp.part file exists then download is already in progress
+             Log('Request to download a file that is currently downloading: %s' % self.dst)
+         else:
+             success = DoDownload(self.name, self.dst, self.src, silent=True)
+             Log('success = %d' % success)
+
+
+def DoThreadedDownload(name, dst, src):
+    downloader = Downloader(name, dst, src)
+    downloader.start()
+
+
+def tidyUp(filename):
+    sfile.remove(filename+'.part')
+    delete(filename)
+    #sfile.remove(filename)
+    #sfile.remove(filename+'.part')
+
+
+def delete(path, APPLICATION=None):
+    path = path.replace(DELIMETER, os.sep)
+    
+    if sfile.isdir(path):        
+        _DeleteFolder(path, APPLICATION)
+    else:
+        _DeleteFile(path, APPLICATION) 
+
+    if APPLICATION:
+        APPLICATION.containerRefresh()
+
+
+def _DeleteFolder(folder, APPLICATION):
+    if not sfile.isempty(folder):
+        if not DialogYesNo(GETTEXT(30104), GETTEXT(30105)):
+            return
+
+    sfile.delete(folder)
+
+    files = sfile.related(folder)
+    
+    for file in files:
+        sfile.delete(file)
+
+    if APPLICATION:
+        APPLICATION.containerRefresh()
+
+
+def _DeleteFile(filename, APPLICATION):
+    files = sfile.related(filename)
+    for file in files:
+        sfile.delete(file)
+
+    folder = sfile.getfolder(filename)
+    if sfile.isempty(folder):
+        try:
+            sfile.delete(folder)
+            APPLICATION.containerRefresh()
+        except:
+            pass
+
+
+def initialisePlaybackTimer(ignoreWhenActive = False):
+    if ignoreWhenActive and xbmcgui.Window(10000).getProperty('LB_ALARM_ACTIVE').lower() == 'true':
+        return
+
+    xbmcgui.Window(10000).setProperty('LB_ALARM_ACTIVE', 'true')
+
+    limits = [4, 8, 12, 14]
+    try:    limit = int(getSetting('PLAYBACK_LIMIT'))
+    except: limit = 0
+
+    limit = limits[limit]
+    limit = limit * 60 #convert to hours
+
+    name   = 'Livebox Playback Timer'
+    script = os.path.join(HOME, 'playbacktimer.py')
+    cmd    = 'AlarmClock(%s,RunScript(%s),%d,silent)' % (name, script, limit)
+
+    Log('Playback Timer Started: %s' % str(limit))
+    Log(cmd)
+
+    xbmc.executebuiltin('CancelAlarm(%s,True)' % name)        
+    xbmc.executebuiltin(cmd)

@@ -1,3 +1,6 @@
+v1.0.0.18
+    - temporary fix for non-ascii characters
+
 v1.0.0.17
     - updated logos
     - added delete folder functionality

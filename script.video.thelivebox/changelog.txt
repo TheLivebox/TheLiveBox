@@ -1,11 +1,26 @@
+
+[COLOR chartreuse]1.0.0.20: 16th March 2016[/COLOR]
+    - fix for non-ascii characters
+    - optimisation of Amazon response parsing
+    - added launching of MBox settings (Android app)
+    - added launching of Browser (Android app)
+    - added launching of Chrome browser (Android app)
+    - added launching of Playstore (Android app)
+
+
+[COLOR chartreuse]1.0.0.19[/COLOR]
+    - unreleased
+
 v1.0.0.18
     - temporary fix for non-ascii characters
+
 
 v1.0.0.17
     - updated logos
     - added delete folder functionality
     - hide folders beginning with . and _
     - added simultaneous stream and download
+
 
 v1.0.0.16
     - removed version number from dialog header
@@ -22,6 +37,7 @@ v1.0.0.15
     - changed Amamzon behaviour from streaming to downloading
     - choose between local storage or the device itself as the download location for online files
     - can now delete files on the local storage
+
 
 v1.0.0.14
     - version bump for plugin version 1.0.0.16
@@ -64,6 +80,7 @@ v1.0.0.9
     - added thumbnail support
     - added animated gif support
     - added update video file functionality
+
 
 v1.0.0.8
     - optimised update process to provide more feedback to user
@@ -112,6 +129,7 @@ v1.0.0.2
 v1.0.0.1:
    - added simple interface mimicing default look and feel of Confluence.
    - added ability to change look and feel via the settings.
+
 
 v1.0.0:
   - alpha release of Livebox using SWIFT framework. 

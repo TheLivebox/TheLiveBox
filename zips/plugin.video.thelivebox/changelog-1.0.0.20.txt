@@ -1,0 +1,49 @@
+
+[COLOR chartreuse]1.0.20: 16th March 2016[/COLOR]
+    - fix for non-ascii characters
+    - optimisation of Amazon response parsing
+
+v1.0.0.19
+    - script v1.0.0.17 support
+
+v1.0.0.18
+    - playback logic for script playback requests
+    - script v1.0.0.16 support
+
+v1.0.0.17
+    - script v1.0.0.15 compatibility
+    - updated for downloading model rather than streaming
+
+v1.0.0.16
+    - bug fix for missing SRC
+
+v1.0.0.15
+    - script v1.0.0.13 compatibility
+
+v1.0.0.14
+    - script v1.0.0.11 compatibility
+    - online browsing via nfo files
+
+v1.0.0.13
+    - script v1.0.0.9 compatibility
+
+v1.0.0.12
+    - script v1.0.0.6 compatibility
+    - removed need for clientID
+
+
+v1.0.0.11
+    - script v1.0.0.5 compatibility
+
+
+v1.0.0.10
+    - external drive browsing
+    - Amazon cloud browsing
+
+
+v1.0.0.9:
+    - version bump for repository functionality
+
+
+v1.0.0.8:
+    - server functionality added to support Server / Client version of addon

@@ -156,6 +156,7 @@ def DialogYesNo(line1, line2='', line3='', noLabel=None, yesLabel=None):
     else:
         return d.yesno(TITLE, line1, line2 , line3, noLabel, yesLabel) == True
 
+
 def HideCancelButton():
     xbmc.sleep(250)
     WINDOW_PROGRESS = xbmcgui.Window(10101)
@@ -178,7 +179,6 @@ def DialogProgress(line1, line2='', line3='', hide=False):
     if hide:
         HideCancelButton()
     return dp
-
 
 
 def checkVersion():
@@ -247,11 +247,11 @@ def SetShortcut():
     Execute('Skin.SetString(%s, %s)' % (param, value))
 
 
-
 def GetClient():
     client = getSetting('CLIENT')
-    if len(client) > 0:
-        return client
+
+    #if len(client) > 0:
+    #    return client
 
     #DialogOK(GETTEXT(30001), GETTEXT(30002), GETTEXT(30003))
 
@@ -337,6 +337,7 @@ def GetText(title, text='', hidden=False, allowEmpty=False):
 
 
 def VerifyPassword():
+    return True
     if xbmcaddon.Addon('plugin.video.thelivebox-admin').getSetting('REQ_PASS').lower() != 'true':
         return True
 
@@ -704,34 +705,80 @@ def getAmazonContent(url, ext):
     return ''
 
 
+html_escape_table = {
+    "&": "&amp;",
+    '"': "&quot;",
+    "'": "&apos;",
+    ">": "&gt;",
+    "<": "&lt;",
+    }
+
+
+def escape(text):
+    return str(''.join(html_escape_table.get(c,c) for c in text))
+
+
+def unescape(text):
+    text = text.replace('&amp;',  '&')
+    text = text.replace('&quot;', '"')
+    text = text.replace('&apos;', '\'')
+    text = text.replace('&gt;',   '>')
+    text = text.replace('&lt;',   '<')
+    return text
+
+
+def fixUnicode(text):
+    ret = ''
+    for ch in text:
+        if ord(ch) < 128 and ord(ch) > -1:
+            ret += ch   
+        else:
+            ret += '%LB%' + format(ord(ch), 'x').upper()     
+    return ret.strip()
+
+
+def fix(text):
+    ret = ''
+    for ch in text:
+        if ord(ch) < 128 and ord(ch) > -1:
+            ret += ch   
+        else:
+            ret += '<%d>' % ord(ch)     
+    return ret.strip()
+
+
 def patchAmazonImage(mode, image, url, infoLabels):
     folder = url.rsplit(DELIMETER, 1)[0]
     files  = s3.getAllFiles(folder, recurse=False)
     root   = folder + removeExtension(url.replace(folder, ''))
-
+    root   = urllib.quote_plus(root).replace('%25LB%25', '%')
+   
     for ext in IMG_EXT: 
         img  = root + ext
 
-        if img in files:            
-            img = s3.convertToCloud(s3.getURL(urllib.quote_plus(img)))
-            gif = s3.convertToCloud(s3.getURL(urllib.quote_plus(root + '.gif')))
+        for file in files:
+            file =  urllib.quote_plus(file.encode('utf-8'))
+            if img == file:
+                img = s3.convertToCloud(s3.getURL(img))
+                gif = s3.convertToCloud(s3.getURL(root + '.gif'))
 
-            infoLabels['Gif'] = img
+                infoLabels['Gif'] = img
 
-            #Kodi incorrectly handles remote gifs therefore download and store locally
-            gifFolder = os.path.join(PROFILE, 'c')
+                #Kodi incorrectly handles remote gifs therefore download and store locally
+                gifFolder = os.path.join(PROFILE, 'c')
 
-            filename  = os.path.join(gifFolder, getMD5(url.split('?', 1)[0])) + '.gif'
+                filename  = os.path.join(gifFolder, getMD5(url.split('?', 1)[0])) + '.gif'
 
-            if sfile.exists(filename):
-                if sfile.size(filename) > 0:
-                    infoLabels['Gif'] = filename
-            else:   
-                if DownloadIfExists(gif, filename):
-                    infoLabels['Gif'] = filename   
-                else:                    
-                    sfile.file(filename, 'w') #create empty file so we don't check again           
-            return img
+                if sfile.exists(filename):
+                    if sfile.size(filename) > 0:
+                        infoLabels['Gif'] = filename
+                else:   
+                    if DownloadIfExists(gif, filename):
+                        infoLabels['Gif'] = filename   
+                    else:                    
+                        sfile.file(filename, 'w') #create empty file so we don't check again   
+                  
+                return img
 
     if mode == AMAZON_FOLDER:
         return 'DefaultFolder.png'
@@ -746,14 +793,15 @@ def patchImage(mode, image, url, infoLabels):
 
     if mode == AMAZON_FOLDER or mode == AMAZON_FILE:
         return patchAmazonImage(mode, image, url, infoLabels)
-        
+            
     if not image:
         return ICON
 
     if image == 'DefaultMovies.png' or image == 'DefaultFolder.png':
         root = removeExtension(url)
-        for ext in IMG_EXT:            
+        for ext in IMG_EXT:        
             img  = root + ext
+            xbmc.log(img)
             if sfile.exists(img):
                 if sfile.exists(root + '.gif'):
                     infoLabels['Gif'] = root + '.gif'
@@ -815,9 +863,12 @@ def DoDownload(name, dst, src, image=None, orignalSrc=None, progressClose=True, 
         return 1
 
     dp = None
+
+    name = name.decode('utf-8')
+
     if not silent:
         dp = DialogProgress(GETTEXT(30079) % name)
-
+        
     download.doDownload(url, temp, name, dp=dp, silent=silent)
     
     if dp and progressClose:

@@ -22,7 +22,10 @@ import utils
 def main():
     utils.Log('Launching support')
 
-    cmd = 'StartAndroidActivity("com.teamviewer.quicksupport.market")'
+    #cmd = 'StartAndroidActivity("com.teamviewer.quicksupport.market")' #TeamViewer
+    #cmd = 'StartAndroidActivity("com.android.settings")' #Settings
+    #cmd = 'StartAndroidActivity("com.mbx.settingsmbox")' #MBox settings
+    cmd = 'StartAndroidActivity("com.android.vending")' #Play Sstore <favourite name="Google Play Store" thumb="androidapp://sources/apps/com.android.vending.png">StartAndroidActivity(&quot;com.android.vending&quot;)</favourite>
     xbmc.executebuiltin(cmd)
 
 if __name__ == '__main__': 

@@ -188,20 +188,18 @@ def ctime(filename):
     return status.st_ctime()
 
 
-def getfolder(path):
-    import os
-    path = path.replace('/', os.sep)
-    if path.endswith(os.sep):
+def getfolder(path, sep=os.sep):
+    path = path.replace('/', sep)
+    if path.endswith(sep):
         path += 'filename'
 
-    try:    return path.rsplit(os.sep, 1)[0]       
+    try:    return path.rsplit(sep, 1)[0]       
     except: return ''
 
 
-def getfilename(path):
-    import os
-    path = path.replace('/', os.sep)
-    try:    return path.rsplit(os.sep, 1)[-1]
+def getfilename(path, sep=os.sep):
+    path = path.replace('/', sep)
+    try:    return path.rsplit(sep, 1)[-1]
     except: return ''
 
 

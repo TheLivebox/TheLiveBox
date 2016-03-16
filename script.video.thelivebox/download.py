@@ -30,7 +30,7 @@ CHUNK_CACHE = 30
 CHUNK_SIZE  = 100
 
 
-def getResponse(url, size, referrer):
+def getResponse(url, size, referrer):  
     try:
         req = urllib2.Request(url)
         if len(referrer) > 0:

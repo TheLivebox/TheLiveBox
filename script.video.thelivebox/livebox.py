@@ -1,4 +1,4 @@
-
+#
 #       Copyright (C) 2013-
 #       Sean Poyser (seanpoyser@gmail.com)
 #
@@ -351,7 +351,7 @@ def GenericList(mode):
     list = GetListItems(list)
 
     for item in list:
-        AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], plot=item[9], contextMenu=menu, replaceItems=True)        
+        AddDir(item[1], item[2], url=item[3], isFolder=item[6], desc=item[8], plot=item[9], contextMenu=menu, replaceItems=True)                
 
 
 def ClearCache():
@@ -634,13 +634,12 @@ def ParseLocalFolder(url):
 
 def ParseRemoteFolder(url, mode):   
     videos = []
-
     list = 'plugin://plugin.video.thelivebox/?mode=%d&url=%s' % (mode, urllib.quote_plus(url))
     list = GetListItems(urllib.quote_plus(list), timeout=120)
 
     menu = getGlobalMenu()
 
-    for item in list:
+    for item in list:        
         name       = item[1]
         mode       = item[2]
         url        = item[3]
@@ -650,7 +649,8 @@ def ParseRemoteFolder(url, mode):
         isPlayable = item[7]
         desc       = item[8]
         plot       = item[9]
-        AddDir(name, mode, url, image, fanart, isFolder, isPlayable, desc, plot, contextMenu=menu, replaceItems=True, infoLabels=None)
+
+        AddDir(name, mode, url, image, fanart, isFolder, isPlayable, desc, plot, contextMenu=menu, replaceItems=True, infoLabels=None)        
 
           
 def GetVimeoVideos():
@@ -675,31 +675,38 @@ def validateMode(mode, name):
 
 
 def AddDir(name, mode, url=None, image=None, fanart=None, isFolder=False, isPlayable=False, desc='', plot='', contextMenu=None, replaceItems=False, infoLabels=None):
+    try:    
+        name = name.encode('utf-8')       
+        url = utils.fixUnicode(utils.unescape(url))
+    except:
+        pass
 
-    if not validateMode(mode, name):
-        return
+    try:
+        if not validateMode(mode, name):
+            return
+    
+        if not fanart:
+            fanart = FANART
 
-    if not fanart:
-        fanart = FANART
+        name = name.replace('_', ' ')
 
-    name = name.replace('_', ' ')
-
-    infoLabels = {'title':name, 'fanart':fanart, 'description':desc, 'plot':plot}    
-
-    image = utils.patchImage(mode, image, url, infoLabels)
+        infoLabels = {'title':name, 'fanart':fanart, 'description':desc, 'plot':plot}    
+        
+        image = utils.patchImage(mode, image, url, infoLabels)
  
-    u  = ''
-    u += '?mode='  + str(mode)
-    u += '&title=' + urllib.quote_plus(name)
+        u  = ''
+        u += '?mode='  + str(mode)
+        u += '&title=' + urllib.quote_plus(name)
 
-    if image:
-        u += '&image=' + urllib.quote_plus(image)
+        if image:
+            u += '&image=' + urllib.quote_plus(image)            
 
-    if url:
-        u += '&url=' + urllib.quote_plus(url)
-
-    APPLICATION.addDir(name, mode, u, image, isFolder, isPlayable, contextMenu=contextMenu, replaceItems=replaceItems, infoLabels=infoLabels)
-
+        if url:
+            u += '&url=' + urllib.quote_plus(url).replace('%25LB%25', '%')
+            
+        APPLICATION.addDir(utils.unescape(name), mode, u, image, isFolder, isPlayable, contextMenu=contextMenu, replaceItems=replaceItems, infoLabels=infoLabels)
+    except Exception, e:
+        raise
     
 def get_params(params):
     if not params:

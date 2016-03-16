@@ -29,7 +29,7 @@ import xbmc
 
 
 CacheDir  = xbmc.translatePath(os.path.join(utils.PROFILE, 'c'))
-CacheSize = 100
+CacheSize = 500
 sfile.makedirs(CacheDir)
 
 

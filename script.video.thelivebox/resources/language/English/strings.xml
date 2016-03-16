@@ -17,7 +17,7 @@
 	<string id="30014">Set as startup video</string>
 	<string id="30015">Remove startup video</string>
 	<string id="30016">Client ID</string>
-	<string id="30017">Show video on bootup</string>
+	<string id="30017">Automatically start on bootup</string>
 	<string id="30018">Click to reset all cached files</string>
 	<string id="30019">Welcome to The Live Box Network! The Live Box produces video programming for businesses that is curated content to the client.  The Live Box features rich, lifestyle programming that helps businesses brand and market to their clients through HDTV's, iPads, Social Media and web. Programming is updated monthly and can include On Location filming segments as well. Find out more by visiting www.thelivebox.com.</string>
 	<string id="30020">Configure settings</string>
@@ -30,7 +30,7 @@
 	<string id="30027">Examination room</string>	
 	<string id="30028">Play all available videos</string>
 	<string id="30029">Select individual video to play</string>
-	<string id="30030">Initial playback mode</string>
+	<string id="30030">Initial playback window mode</string>
 	<string id="30031">Fullscreen</string>
 	<string id="30032">Window</string>
 	<string id="30033">Server / Client</string>
@@ -52,7 +52,7 @@
 	<string id="30049">Browse local storage</string>
 	<string id="30050">Administrator password</string>
 	<string id="30051">Please enter administrator password</string>
-    <string id="30052">Unit will temporarily run in local server mode</string>
+        <string id="30052">Unit will temporarily run in local server mode</string>
 	<string id="30053">Client (local server mode)</string>
 	<string id="30054">Incorrect password entered</string>	
 	<string id="30055">Click to browse folder</string>		
@@ -91,7 +91,7 @@
 	<string id="30088">and configued correctly in the settings</string>
 	<string id="30089">Previous menu</string>
 	<string id="30090">Click to return to previous menu</string>
-	<string id="30091">[COLOR springgreen]Launch remote support[/COLOR]</string>
+	<string id="30091">[COLOR cyan]Launch remote support[/COLOR]</string>
 	<string id="30092">Download location</string>
 	<string id="30093">Device</string>
 	<string id="30094">Local storage</string>
@@ -122,10 +122,21 @@
 	<string id="35005">Browse online</string>
 	<string id="35006">Browse local files</string>	
 	<string id="35007">Show hidden folders</string>
+	<string id="35008">[COLOR cyan]Advanced settings[/COLOR]</string>
+	<string id="35009">[COLOR cyan]Launch Chrome Browser[/COLOR]</string>
+        <string id="35010">[COLOR cyan]Launch Google Play (Play Store)[/COLOR]</string>
+	<string id="35011">[COLOR cyan]Launch Browser[/COLOR]</string>
 	
-	<string id="35100">Playback limit</string>	
+	<string id="35100">Limit playback to</string>	
 	<string id="35101">4 hours</string>
 	<string id="35102">8 hours</string>
 	<string id="35103">12 hours</string>
-	<string id="35104">24 hours</string>		
+	<string id="35104">24 hours</string>
+        <string id="35105">          Start playback at</string>
+        <string id="35106">          End playback at</string>
+
+        <string id="35110">Playback limit mode</string>	
+        <string id="35111">Timelimit</string>	
+        <string id="35112">Timeframe</string>
+        <string id="35113">Continuous (no limit)</string>		
 </strings>

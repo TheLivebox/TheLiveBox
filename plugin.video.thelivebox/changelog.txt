@@ -1,3 +1,8 @@
+
+[COLOR chartreuse]1.0.20: 16th March 2016[/COLOR]
+    - fix for non-ascii characters
+    - optimisation of Amazon response parsing
+
 v1.0.0.19
     - script v1.0.0.17 support
 

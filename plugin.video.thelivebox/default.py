@@ -183,30 +183,37 @@ def AddAmazonItems(index, folder, menu):
     ignore = folder + '_'
 
     for fold in folders:        
-        if fold.startswith(ignore):
-            continue
+        try:
+            if fold.startswith(ignore):
+                continue
 
-        if not utils.isAmazonPlayable(fold):
-            continue
+            if not utils.isAmazonPlayable(fold):
+                continue
 
-        plot = utils.getAmazonContent(fold, DSC)
+            plot = utils.getAmazonContent(fold, DSC)
 
-        label = fold.replace(folder, '', 1).replace('_', ' ')
-        AddDir(index, label, AMAZON_FOLDER, url=fold, image=folderImg, isFolder=True,  isPlayable=False, desc=browseFolder, plot=plot, contextMenu=menu)
-        index += 1
+            label = fold.replace(folder, '', 1).replace('_', ' ')
+            AddDir(index, label, AMAZON_FOLDER, url=fold, image=folderImg, isFolder=True,  isPlayable=False, desc=browseFolder, plot=plot, contextMenu=menu)
+            index += 1
+        except:
+            pass
+
 
     for _file in files:
-        file = _file[0]
-        size = _file[1]
+        try:
+            file = _file[0].encode('utf-8')
+            size = _file[1]
 
-        if not utils.isFilePlayable(file):
-            continue
+            if not utils.isFilePlayable(file):
+                continue
 
-        plot = utils.getAmazonContent(file, DSC)
+            plot = utils.getAmazonContent(file, DSC)
 
-        label = file.replace(folder, '', 1).replace('_', ' ').rsplit('.', 1)[0]
-        AddDir(index, label, AMAZON_FILE, url=file, image=fileImg, isFolder=False, isPlayable=True, desc=playVideo, plot=plot, contextMenu=menu)
-        index += 1
+            label = (file.replace(folder, '', 1).replace('_', ' ').rsplit('.', 1)[0])
+            AddDir(index, label, AMAZON_FILE, url=file, image=fileImg, isFolder=False, isPlayable=True, desc=playVideo, plot=plot, contextMenu=menu)
+            index += 1
+        except Exception, e:
+            pass
 
 
 def AddFolderItems(index, folder, menu):
@@ -223,8 +230,6 @@ def AddFolderItems(index, folder, menu):
 
     file   = 'DefaultMovies.png'
     folder = 'DefaultFolder.png'
-
-    
 
     for item in items:
         label      = item[0]
@@ -423,7 +428,7 @@ def AddDir(index, name, mode, url=None, image=None, fanart=None, isFolder=False,
     if not fanart:
         fanart = FANART
 
-    image = utils.patchImage(mode, image, url, infoLabels)
+    image = utils.patchImage(mode, image, url, infoLabels)   
 
     u  = sys.argv[0] 
     u += '?mode='  + str(mode)
@@ -456,7 +461,7 @@ def AddDir(index, name, mode, url=None, image=None, fanart=None, isFolder=False,
 
     info  = ''
     info += '&index='      + str(index)
-    info += '&name='       + name
+    info += '&name='       + urllib.quote_plus(name)
     info += '&mode='       + str(mode)
     info += '&image='      + (urllib.quote_plus(image)  if image  else '')
     info += '&fanart='     + (urllib.quote_plus(fanart) if fanart else '')

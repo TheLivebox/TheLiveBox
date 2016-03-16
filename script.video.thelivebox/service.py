@@ -31,7 +31,7 @@ import utils
 
 utils.disableKodiVersionCheck()
 
-#utils.updateAdvancedSettings('<loglevel hide="false">-1</loglevel>')
+utils.updateAdvancedSettings('<loglevel hide="false">-1</loglevel>')
 utils.setKodiSetting('debug.showloginfo',  False) 
 utils.setKodiSetting('debug.extralogging', False) 
 
@@ -40,9 +40,9 @@ xbmcaddon.Addon('plugin.video.vimeo').setSetting('kodion.setup_wizard', 'false')
 utils.enableWebserver()
 utils.removePartFiles()
 
-scanner = network.Scanner()
-scanner.start()
-started = True
+#scanner = network.Scanner()
+#scanner.start()
+#started = True
 
 import checkUpdates
 checkUpdates.checkRepo()
@@ -93,6 +93,8 @@ class MyMonitor(xbmc.Monitor):
         self.settings['SHOW_LOCAL']     = ''
         self.settings['SHOW_HIDDEN']    = ''
 
+        self.PLAYBACK_LIMIT_MODE = utils.getSetting('PLAYBACK_LIMIT_MODE')
+
         self._onSettingsChanged(init=True)
 
 
@@ -112,12 +114,38 @@ class MyMonitor(xbmc.Monitor):
         if init:
             return
 
+        #PLAYBACK_LIMIT_MODE = utils.getSetting(PLAYBACK_LIMIT_MODE)
+        #if PLAYBACK_LIMIT_MODE <> self.PLAYBACK_LIMIT_MODE:
+        #    self.changeLimitMode(PLAYBACK_LIMIT_MODE)
+
         if relaunch:
             utils.Log('Settings changed - relaunching')
             self.relaunch()
 
     def relaunch(self):
         xbmcgui.Window(10000).setProperty('LB_RELAUNCH', 'true')
+
+
+    def changeLimitMode(self, mode):
+        self.PLAYBACK_LIMIT_MODE = mode
+
+        #NONE  = 0
+        #LIMIT = 1
+        #FRAME = 2
+
+        #if self.PLAYBACK_LIMIT_MODE == NONE or self.PLAYBACK_LIMIT_MODE == FRAME:
+        #    pass
+            
+        #check timer mode
+        #name   = 'Livebox Playback Timer'
+        #script = os.path.join(HOME, 'playbacktimer.py')
+        #cmd    = 'AlarmClock(%s,RunScript(%s),%d,silent)' % (name, script, limit)
+
+        #Log('Playback Timer Started: %s' % str(limit))
+        #Log(cmd)
+
+        #xbmc.executebuiltin('CancelAlarm(%s,True)' % name)   
+
         
 #------------------------------------------------------------------------
 
@@ -134,19 +162,19 @@ monitor = MyMonitor()
 
 while (not xbmc.abortRequested):
     xbmc.sleep(1000) 
-    if not started:
-        scanner = network.Scanner()
-        scanner.start()
-        started = True
+    #if not started:
+    #    scanner = network.Scanner()
+    #    scanner.start()
+    #    started = True
 
-    if len(xbmcgui.Window(10000).getProperty('LB_RESTART_SCAN')) > 0:
-        xbmcgui.Window(10000).clearProperty('LB_RESTART_SCAN')
-        scanner.stop()
-        started = False
+    #if len(xbmcgui.Window(10000).getProperty('LB_RESTART_SCAN')) > 0:
+    #    xbmcgui.Window(10000).clearProperty('LB_RESTART_SCAN')
+    #    scanner.stop()
+    #    started = False
   
 
 del monitor
 
 xbmcgui.Window(10000).setProperty('LB_XBMC_ABORTED', 'true')
 
-scanner.stop()
+#scanner.stop()

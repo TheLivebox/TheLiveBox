@@ -94,6 +94,8 @@ class MyMonitor(xbmc.Monitor):
         self.settings['SHOW_HIDDEN']    = ''
 
         self.PLAYBACK_LIMIT_MODE = utils.getSetting('PLAYBACK_LIMIT_MODE')
+        self.PLAYBACK_START      = utils.getSetting('PLAYBACK_START')
+        self.PLAYBACK_END        = utils.getSetting('PLAYBACK_END')
 
         self._onSettingsChanged(init=True)
 
@@ -114,9 +116,7 @@ class MyMonitor(xbmc.Monitor):
         if init:
             return
 
-        #PLAYBACK_LIMIT_MODE = utils.getSetting(PLAYBACK_LIMIT_MODE)
-        #if PLAYBACK_LIMIT_MODE <> self.PLAYBACK_LIMIT_MODE:
-        #    self.changeLimitMode(PLAYBACK_LIMIT_MODE)
+        self.checkLimitMode()
 
         if relaunch:
             utils.Log('Settings changed - relaunching')
@@ -126,25 +126,37 @@ class MyMonitor(xbmc.Monitor):
         xbmcgui.Window(10000).setProperty('LB_RELAUNCH', 'true')
 
 
-    def changeLimitMode(self, mode):
-        self.PLAYBACK_LIMIT_MODE = mode
+    def checkLimitMode(self):
+        newMode = utils.getSetting('PLAYBACK_LIMIT_MODE')
 
-        #NONE  = 0
-        #LIMIT = 1
-        #FRAME = 2
+        NONE  = '0'
+        LIMIT = '1'
+        FRAME = '2'
 
-        #if self.PLAYBACK_LIMIT_MODE == NONE or self.PLAYBACK_LIMIT_MODE == FRAME:
-        #    pass
-            
-        #check timer mode
-        #name   = 'Livebox Playback Timer'
-        #script = os.path.join(HOME, 'playbacktimer.py')
-        #cmd    = 'AlarmClock(%s,RunScript(%s),%d,silent)' % (name, script, limit)
+        if newMode == LIMIT and self.PLAYBACK_LIMIT_MODE == LIMIT:
+            return
 
-        #Log('Playback Timer Started: %s' % str(limit))
-        #Log(cmd)
+        import playbackTimer
 
-        #xbmc.executebuiltin('CancelAlarm(%s,True)' % name)   
+        playbackTimer.cancel()
+        self.PLAYBACK_LIMIT_MODE = newMode
+
+
+        if self.PLAYBACK_LIMIT_MODE == LIMIT:
+           playbackTimer.start()
+
+
+        if self.PLAYBACK_LIMIT_MODE == FRAME:
+            start = utils.getSetting('PLAYBACK_START')
+            end   = utils.getSetting('PLAYBACK_END')
+
+            if self.PLAYBACK_START <> start:
+                xbmcgui.Window(10000).setProperty('LB_RESET_START', 'true')
+                self.PLAYBACK_START = start
+
+            if self.PLAYBACK_END <> end:
+                xbmcgui.Window(10000).setProperty('LB_RESET_END', 'true')
+                self.PLAYBACK_END = end
 
         
 #------------------------------------------------------------------------

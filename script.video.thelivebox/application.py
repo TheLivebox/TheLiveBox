@@ -31,6 +31,8 @@ import re
 import urllib
 import threading
 
+import datetime
+
 
 import sfile
 import utils
@@ -56,6 +58,24 @@ GETTEXT = utils.GETTEXT
 FRODO   = utils.FRODO
 
 VERSION = utils.VERSION
+
+
+ONE_DAY = datetime.timedelta(days=1)
+ONE_SEC = datetime.timedelta(seconds=1)
+
+
+def convertToTime(now, index, isEnd=False):
+    nHours = int(index)
+
+    when = datetime.datetime(now.year, now.month, now.day, nHours, 0, 0)
+
+    if nHours == 0 and isEnd:
+        when += ONE_DAY
+
+    if isEnd:
+        when -= ONE_SEC
+
+    return when
        
 
 class Application(xbmcgui.WindowXML):
@@ -80,6 +100,9 @@ class Application(xbmcgui.WindowXML):
         self.faves           = str(favourite.getFavourites())
         self.counter         = 0
         self.listSize        = -1
+
+        self.playbackStart = None
+        self.playbackEnd   = None
 
 
     def onInit(self): 
@@ -120,6 +143,52 @@ class Application(xbmcgui.WindowXML):
         xbmcgui.WindowXML.close(self)
 
 
+    def checkPlaybackTimes(self):
+        now = datetime.datetime.today()
+
+        if len(xbmcgui.Window(10000).getProperty('LB_RESET_START')) > 0:
+            utils.Log('Reset Playback START time detected')
+            xbmcgui.Window(10000).clearProperty('LB_RESET_START')
+            self.playbackStart = None
+
+        if not self.playbackStart:
+            self.playbackStart = convertToTime(now.date(), utils.getSetting('PLAYBACK_START'))
+
+            if self.playbackStart < now:
+               self.playbackStart += ONE_DAY
+
+            utils.Log('Playback Timer - START = %s' % str(self.playbackStart))
+
+        elif now >= self.playbackStart:
+            self.playbackStart += ONE_DAY
+            if utils.getSetting('PLAYBACK_LIMIT_MODE') == '2':
+                if not xbmc.Player().isPlaying():
+                    functionality.replay()
+
+        #-------------------------------------------------------------------------------------
+
+        if len(xbmcgui.Window(10000).getProperty('LB_RESET_END')) > 0:
+            utils.Log('Reset Playback END   time detected')
+            xbmcgui.Window(10000).clearProperty('LB_RESET_END')
+            self.playbackEnd = None
+
+        if not self.playbackEnd:
+            self.playbackEnd = convertToTime(now.date(), utils.getSetting('PLAYBACK_END'), isEnd=True)
+
+            if self.playbackEnd < now:
+               self.playbackEnd += ONE_DAY 
+
+            utils.Log('Playback Timer - END   = %s' % str(self.playbackEnd))
+
+        elif now >= self.playbackEnd:
+            utils.Log('Playback Timer - END   = %s' % str(self.playbackEnd))
+            self.playbackEnd += ONE_DAY
+            if utils.getSetting('PLAYBACK_LIMIT_MODE') == '2':
+                xbmc.Player().stop()
+
+        #-------------------------------------------------------------------------------------
+
+
     def resetTimer(self):
         try:
             self.stopTimer()
@@ -153,6 +222,7 @@ class Application(xbmcgui.WindowXML):
             if self.getListSize() > 0:                
                 self.containerRefresh()
 
+        self.checkPlaybackTimes()
         self.resetTimer()
 
 
@@ -218,7 +288,7 @@ class Application(xbmcgui.WindowXML):
         
                                  
     def onClick(self, controlId):        
-        utils.Log('onClick %d' % controlId)        
+        utils.Log('onClick %d' % controlId)
 
 
     def verifyClose(self):
@@ -546,6 +616,7 @@ class Application(xbmcgui.WindowXML):
         #call into the "real" addon
         if isFolder:
             self.showBusy()
+
         functionality.onParams(self, params)
         self.closeBusy()
 

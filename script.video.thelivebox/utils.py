@@ -61,6 +61,7 @@ UPDATE_FILE_CHK       = 1500
 UPDATE_FILE           = 1600
 DELETE_LOCAL_FILE     = 1700
 DELETE_LOCAL_FOLDER   = 1800
+REPLAY                = 1900
 
 SERVER          = 5100
 LBVERSION       = 5200
@@ -117,6 +118,7 @@ BOOTVIDEO      = getSetting('BOOTVIDEO')      == 'true'
 SHOW_CONFIGURE = getSetting('SHOW_CONFIGURE') == 'true'
 SHOW_REFRESH   = getSetting('SHOW_REFRESH')   == 'true'
 SHOW_DOWNLOAD  = getSetting('SHOW_DOWNLOAD')  == 'true'
+SHOW_REPLAY    = getSetting('SHOW_REPLAY')    == 'true'
 SHOW_VIMEO     = getSetting('SHOW_VIMEO')     == 'true'
 SHOW_AMAZON    = getSetting('SHOW_AMAZON')    == 'true'
 SHOW_LOCAL     = getSetting('SHOW_LOCAL')     == 'true'
@@ -801,7 +803,7 @@ def patchImage(mode, image, url, infoLabels):
         root = removeExtension(url)
         for ext in IMG_EXT:        
             img  = root + ext
-            xbmc.log(img)
+           
             if sfile.exists(img):
                 if sfile.exists(root + '.gif'):
                     infoLabels['Gif'] = root + '.gif'
@@ -1016,27 +1018,3 @@ def _DeleteFile(filename, APPLICATION):
             APPLICATION.containerRefresh()
         except:
             pass
-
-
-def initialisePlaybackTimer(ignoreWhenActive = False):
-    if ignoreWhenActive and xbmcgui.Window(10000).getProperty('LB_ALARM_ACTIVE').lower() == 'true':
-        return
-
-    xbmcgui.Window(10000).setProperty('LB_ALARM_ACTIVE', 'true')
-
-    limits = [4, 8, 12, 14]
-    try:    limit = int(getSetting('PLAYBACK_LIMIT'))
-    except: limit = 0
-
-    limit = limits[limit]
-    limit = limit * 60 #convert to hours
-
-    name   = 'Livebox Playback Timer'
-    script = os.path.join(HOME, 'playbacktimer.py')
-    cmd    = 'AlarmClock(%s,RunScript(%s),%d,silent)' % (name, script, limit)
-
-    Log('Playback Timer Started: %s' % str(limit))
-    Log(cmd)
-
-    xbmc.executebuiltin('CancelAlarm(%s,True)' % name)        
-    xbmc.executebuiltin(cmd)

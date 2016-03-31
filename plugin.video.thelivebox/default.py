@@ -69,6 +69,7 @@ AMAZON_FOLDER   = utils.AMAZON_FOLDER
 UPDATE_FILE_CHK = utils.UPDATE_FILE_CHK
 UPDATE_FILE     = utils.UPDATE_FILE
 LOCAL_FILE      = utils.LOCAL_FILE
+REPLAY          = utils.REPLAY
 
 SERVER           = utils.SERVER
 LBVERSION        = utils.LBVERSION
@@ -79,6 +80,7 @@ RETRIEVE_URL     = utils.RETRIEVE_URL
 SHOW_CONFIGURE = utils.SHOW_CONFIGURE
 SHOW_REFRESH   = utils.SHOW_REFRESH
 SHOW_DOWNLOAD  = utils.SHOW_DOWNLOAD
+SHOW_REPLAY    = utils.SHOW_REPLAY
 SHOW_VIMEO     = utils.SHOW_VIMEO
 SHOW_AMAZON    = utils.SHOW_AMAZON
 SHOW_LOCAL     = utils.SHOW_LOCAL
@@ -152,6 +154,9 @@ def MainList(client):
         if SHOW_VIMEO:
             AddDir(30, GETTEXT(30026),               WAITING,         isFolder=False, isPlayable=True,  desc=GETTEXT(30028), contextMenu=menu)
             AddDir(40, GETTEXT(30027),               EXAM,            isFolder=True,  isPlayable=False, desc=GETTEXT(30029), contextMenu=menu)
+
+    if SHOW_REPLAY and len(utils.getSetting('PARAMS')) > 0:
+        AddDir(45, '[I]%s[/I]' % GETTEXT(30113), REPLAY, isFolder=False, isPlayable=True, desc=GETTEXT(30114), contextMenu=menu)
 
     if hasClient and SHOW_AMAZON:
         try:    AddAmazonItems(50, '', menu)

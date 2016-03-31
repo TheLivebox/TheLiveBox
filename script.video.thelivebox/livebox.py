@@ -61,6 +61,7 @@ UPDATE_FILE_CHK       = utils.UPDATE_FILE_CHK
 UPDATE_FILE           = utils.UPDATE_FILE
 DELETE_LOCAL_FILE     = utils.DELETE_LOCAL_FILE
 DELETE_LOCAL_FOLDER   = utils.DELETE_LOCAL_FOLDER
+REPLAY                = utils.REPLAY
 
 
 SERVER          = utils.SERVER
@@ -85,7 +86,8 @@ URL     = 'https://vimeo.com/channels/%s/videos/rss'
 
 
 global APPLICATION
-
+global PARAMS
+global REPEAT
 
 
 def NoPlay(reason):
@@ -103,7 +105,9 @@ def SetResolvedUrl(url, success=True, listItem=None, windowed=True):
     #APPLICATION.setResolvedUrl(url, success=success, listItem=listItem, windowed=windowed)
     pl = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
     xbmc.Player(xbmc.PLAYER_CORE_AUTO).play(pl, windowed=windowed)
-    utils.initialisePlaybackTimer()
+    utils.setSetting('PARAMS', PARAMS)
+    import playbackTimer
+    playbackTimer.restart()
 
 
 def GetJSON(params, timeout):
@@ -584,7 +588,7 @@ def DownloadFile(name, src, dst, image=None):
     exists     = sfile.exists(dst)
 
     if exists:
-        if not utils.DialogYesNo(GETTEXT(30099), GETTEXT(30100)):
+        if (not REPEAT) and (not utils.DialogYesNo(GETTEXT(30099), GETTEXT(30100))):
             exists = False
             utils.delete(dst, APPLICATION)
         else:
@@ -593,8 +597,8 @@ def DownloadFile(name, src, dst, image=None):
             name, thumb = utils.GetTitleAndImage(dst)
 
     if not exists:
-        autoPlay = False
-        if not utils.DialogYesNo(GETTEXT(30085), GETTEXT(30086), noLabel=GETTEXT(30111), yesLabel=GETTEXT(30112)):
+        autoPlay = False        
+        if REPEAT or not utils.DialogYesNo(GETTEXT(30085), GETTEXT(30086), noLabel=GETTEXT(30111), yesLabel=GETTEXT(30112)):
             autoPlay   = True
             repeatMode = GetRepeatMode()
 
@@ -621,6 +625,9 @@ def DownloadFile(name, src, dst, image=None):
     
 
 def GetRepeatMode():
+    if REPEAT:
+        return REPEAT
+
     repeatMode = 'RepeatOff'
     if not utils.DialogYesNo(GETTEXT(30008), GETTEXT(30009), GETTEXT(30010), GETTEXT(30011), GETTEXT(30012)):
          repeatMode = 'RepeatAll'
@@ -735,6 +742,21 @@ def onBack(application, params):
         application.containerRefresh()
 
 
+def replay():
+    global PARAMS
+    PARAMS = utils.getSetting('PARAMS')
+
+    if len(PARAMS) == 0:
+        return
+
+    global REPEAT
+    REPEAT = 'RepeatAll'
+
+    main(get_params(PARAMS)) 
+       
+    REPEAT = None
+
+
 def main(params):
     try:    mode = int(urllib.unquote_plus(params['mode']))
     except: mode = None
@@ -745,7 +767,10 @@ def main(params):
     try:    utils.Log('Selected mode = %s' % str(mode))
     except: pass
 
-    if mode == VIDEO_ADDON or mode == SERVER_FILE or mode == AMAZON_FILE:
+    if mode == REPLAY:
+        replay()
+
+    elif mode == VIDEO_ADDON or mode == SERVER_FILE or mode == AMAZON_FILE:
         try:    
             try:    title = urllib.unquote_plus(params['title'])
             except: title = ''
@@ -871,5 +896,11 @@ def onParams(application, params):
     global APPLICATION
     APPLICATION = application
 
-    params = get_params(params)
+    global REPEAT
+    REPEAT = None
+
+    global PARAMS
+    PARAMS = params
+
+    params = get_params(PARAMS)
     main(params)

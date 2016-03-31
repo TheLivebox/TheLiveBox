@@ -1,41 +1,48 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
 	<category label="30040">
-		<setting id="VERSION"  type="text" label="Version"  default="0.0.0" visible="false"/>
+      		<setting id="VERSION"  type="text" label="Version"  default="0.0.0" visible="false"/>
+
+                <setting id="PARAMS"   type="text" label="Parameters" default="" visible="false"/>
 		
 		<setting id="DEMO"     type="bool"   label="30047" default="false" visible="false"/>
 		
 		<setting id="CLIENT"    type="text"   label="30016" default=""/>		
 		
-		<setting id="PLAYBACK_MODE"   type="enum"   label="30030" lvalues="30031|30032"             default="0"/>
-		<setting id="PLAYBACK_LIMIT"  type="enum"   label="35100" lvalues="35101|35102|35103|35104" default="0"/>		
-		
+		<setting id="PLAYBACK_MODE"   type="enum"   label="30030" lvalues="30031|30032" default="0"/>
+
+                <setting id="PLAYBACK_LIMIT_MODE"  type="enum"   label="35110" lvalues="35113|35111|35112" default="0" enable="True"/>		
+                <setting id="PLAYBACK_LIMIT"       type="enum"   label="35100" lvalues="35101|35102|35103|35104" default="0" visible="eq(-1,1)"/>		
+                <setting id="PLAYBACK_START"       type="enum"   label="35105" lvalues="36000|36001|36002|36003|36004|36005|36006|36007|36008|36009|36010|36011|36012|36013|36014|36015|36016|36017|36018|36019|36020|36021|36022|36023" default="1" visible="eq(-2,2)"/>		
+                <setting id="PLAYBACK_END"         type="enum"   label="35106" lvalues="36000|36001|36002|36003|36004|36005|36006|36007|36008|36009|36010|36011|36012|36013|36014|36015|36016|36017|36018|36019|36020|36021|36022|36023" default="3" visible="eq(-3,2)"/>		
+				
 		<setting id="BOOTVIDEO" type="bool"   label="30017" default="true"/>
 		
 		<setting id="EXT_DRIVE" type="folder" label="30065" default="/storage/external_storage/sda1/"/>	
 		
 		<setting id="DOWNLOAD_LOC" type="enum" label="30092" lvalues="30094|30093" default="0" visible="false"/>
-		
-		<setting label="35008" type="action"  action="RunScript($CWD/androidApp.py, com.mbx.settingsmbox)"               option=""/>
-		<setting label="35009" type="action"  action="RunScript($CWD/androidApp.py, com.android.chrome)"                 option=""/>
-		<setting label="35011" type="action"  action="RunScript($CWD/androidApp.py, com.android.browser)"                option=""/>
-		<setting label="35010" type="action"  action="RunScript($CWD/androidApp.py, com.android.vending)"                option=""/>
-		<setting label="30091" type="action"  action="RunScript($CWD/androidApp.py, com.teamviewer.quicksupport.market)" option=""/>
-		<setting label="30066" type="action"  action="RunScript($CWD/checkUpdates.py)"                                   option=""/>
+				
+                <setting label="35008" type="action"  action="RunScript($CWD/androidApp.py, com.mbx.settingsmbox)"               />
+                <setting label="35009" type="action"  action="RunScript($CWD/androidApp.py, com.mbx.chrome)"                     />
+                <setting label="35011" type="action"  action="RunScript($CWD/androidApp.py, com.android.browser)"                />
+                <setting label="35010" type="action"  action="RunScript($CWD/androidApp.py, com.android.vending)"                />
+		<setting label="30091" type="action"  action="RunScript($CWD/androidApp.py, com.teamviewer.quicksupport.market)" />
+		<setting label="30066" type="action"  action="RunScript($CWD/checkUpdates.py)"                                   />
 	</category> 
 	
 	<category label="35000">
 		<setting id="SKIN" type="select" label="30022" source="../../addons/script.video.thelivebox/resources/skins/" mask="/" default="Thumbnails"/>
-		
-		<setting id="SHOW_CONFIGURE"     type="bool"   label="35001" default="true"  visible="true"/>
-		<setting id="SHOW_REFRESH"       type="bool"   label="35002" default="true"  visible="true"/>
-		<setting id="SHOW_DOWNLOAD"      type="bool"   label="35003" default="true"  visible="true"/>
-		<setting id="SHOW_VIMEO"         type="bool"   label="35004" default="true"  visible="true"/>
-		<setting id="SHOW_AMAZON"        type="bool"   label="35005" default="true"  visible="true"/>
-		<setting id="SHOW_LOCAL"         type="bool"   label="35006" default="true"  visible="true"/>
-		<setting id="SHOW_HIDDEN"        type="bool"   label="35007" default="false" visible="true"/>
-	</category> 
 	
+  	    	<setting id="SHOW_CONFIGURE"     type="bool"   label="35001" default="true"  visible="true"/>
+  	    	<setting id="SHOW_REFRESH"       type="bool"   label="35002" default="true"  visible="true"/>
+  	    	<setting id="SHOW_DOWNLOAD"      type="bool"   label="35003" default="true"  visible="true"/>
+  	    	<setting id="SHOW_VIMEO"         type="bool"   label="35004" default="true"  visible="true"/>
+  	    	<setting id="SHOW_REPLAY"        type="bool"   label="35012" default="true"  visible="true"/>
+  	    	<setting id="SHOW_AMAZON"        type="bool"   label="35005" default="true"  visible="true"/>
+  	    	<setting id="SHOW_LOCAL"         type="bool"   label="35006" default="true"  visible="true"/>
+  	    	<setting id="SHOW_HIDDEN"        type="bool"   label="35007" default="false" visible="true"/>
+	</category> 
+		
 	<category1 label="30041">
 		<setting id="HOST_MODE"   type="enum"      label="30033" lvalues="30034|30035" default="0"/>
 		<setting id="SERVER_MODE" type="enum"      label="30036" lvalues="30037|30038" default="0"           visible="eq(-1,1)"/>

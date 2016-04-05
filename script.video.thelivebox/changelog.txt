@@ -1,4 +1,9 @@
 
+[COLOR chartreuse]1.0.0.22: 5th April 2016[/COLOR]
+    - switch to 24 hour playback limit if currently set to continuous
+    - launch browser at lvbxmag.com
+
+
 [COLOR chartreuse]1.0.0.21: 31st March 2016[/COLOR]
     - added play previously played video
     - added timeframe playback feature

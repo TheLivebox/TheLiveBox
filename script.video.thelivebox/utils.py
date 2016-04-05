@@ -195,6 +195,11 @@ def checkVersion():
     if curr == '1.0.0.4':
         setSetting('SKIN', 'Thumbnails')
 
+    if curr == '1.0.0.22':
+        if getSetting('PLAYBACK_LIMIT_MODE') == '0': #continuous
+            setSetting('PLAYBACK_LIMIT_MODE', '1')   #timelimit
+            setSetting('PLAYBACK_LIMIT',      '3')   #24 hours
+
     #DialogOK(GETTEXT(30004), GETTEXT(30005), GETTEXT(30006))
     
 

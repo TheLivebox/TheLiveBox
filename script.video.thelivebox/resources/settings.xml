@@ -22,12 +22,12 @@
 		
 		<setting id="DOWNLOAD_LOC" type="enum" label="30092" lvalues="30094|30093" default="0" visible="false"/>
 				
-                <setting label="35008" type="action"  action="RunScript($CWD/androidApp.py, com.mbx.settingsmbox)"               />
-                <setting label="35009" type="action"  action="RunScript($CWD/androidApp.py, com.mbx.chrome)"                     />
-                <setting label="35011" type="action"  action="RunScript($CWD/androidApp.py, com.android.browser)"                />
-                <setting label="35010" type="action"  action="RunScript($CWD/androidApp.py, com.android.vending)"                />
-		<setting label="30091" type="action"  action="RunScript($CWD/androidApp.py, com.teamviewer.quicksupport.market)" />
-		<setting label="30066" type="action"  action="RunScript($CWD/checkUpdates.py)"                                   />
+                <setting label="35008" type="action" action="RunScript($CWD/androidApp.py, com.mbx.settingsmbox)"               />
+                <setting label="35009" type="action" action="RunScript($CWD/androidApp.py, com.android.chrome,  android.intent.action.VIEW, ,http://lvbxmag.com)" />
+                <setting label="35011" type="action" action="RunScript($CWD/androidApp.py, com.android.browser, android.intent.action.VIEW, ,http://lvbxmag.com)" />
+                <setting label="35010" type="action" action="RunScript($CWD/androidApp.py, com.android.vending)"                />
+		<setting label="30091" type="action" action="RunScript($CWD/androidApp.py, com.teamviewer.quicksupport.market)" />
+		<setting label="30066" type="action" action="RunScript($CWD/checkUpdates.py)"                                   />
 	</category> 
 	
 	<category label="35000">

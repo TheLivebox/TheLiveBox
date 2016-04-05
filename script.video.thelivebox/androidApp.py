@@ -15,25 +15,36 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-#thumb="androidapp://sources/apps/com.android.vending.png
 
-
-def launchAndroid(app):
+def launchAndroid(app, intent, dataType, dataURI):
     import utils
     utils.Log('Launching Android App : %s' % app)
 
     import xbmc
-    cmd = 'StartAndroidActivity("%s")' % app
+    cmd = 'StartAndroidActivity("%s", "%s", "%s", "%s")' % (app, intent, dataType, dataURI)
+
+    utils.Log(cmd)
+
     xbmc.executebuiltin(cmd)
 
    
 if __name__ == '__main__':
-    app = None
+    app      = None
+    intent   = ''
+    dataType = ''
+    dataURI  = ''
+
     if len(sys.argv) == 1:
         # open selection box to chooose from
         app = None
     else:
-        app = sys.argv[1]
+        try:
+            app      = sys.argv[1]
+            intent   = sys.argv[2]
+            dataType = sys.argv[3]
+            dataURI  = sys.argv[4]
+        except:
+            pass
 
     if app:
-        launchAndroid(app)
+        launchAndroid(app, intent, dataType, dataURI)

@@ -1,4 +1,9 @@
 
+
+[COLOR chartreuse]1.0.0.23: 8th September 2016[/COLOR]
+    - removed caching feature
+
+
 [COLOR chartreuse]1.0.0.22: 5th April 2016[/COLOR]
     - switch to 24 hour playback limit if currently set to continuous
     - launch browser at lvbxmag.com

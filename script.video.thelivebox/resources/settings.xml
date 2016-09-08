@@ -34,7 +34,7 @@
 		<setting id="SKIN" type="select" label="30022" source="../../addons/script.video.thelivebox/resources/skins/" mask="/" default="Thumbnails"/>
 	
   	    	<setting id="SHOW_CONFIGURE"     type="bool"   label="35001" default="true"  visible="true"/>
-  	    	<setting id="SHOW_REFRESH"       type="bool"   label="35002" default="true"  visible="true"/>
+  	    	<setting id="SHOW_REFRESH"       type="bool"   label="35002" default="true"  visible="false"/>
   	    	<setting id="SHOW_DOWNLOAD"      type="bool"   label="35003" default="true"  visible="true"/>
   	    	<setting id="SHOW_VIMEO"         type="bool"   label="35004" default="true"  visible="true"/>
   	    	<setting id="SHOW_REPLAY"        type="bool"   label="35012" default="true"  visible="true"/>

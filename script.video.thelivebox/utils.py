@@ -116,7 +116,7 @@ def setSetting(param, value):
 GETTEXT        = ADDON.getLocalizedString
 BOOTVIDEO      = getSetting('BOOTVIDEO')      == 'true'
 SHOW_CONFIGURE = getSetting('SHOW_CONFIGURE') == 'true'
-SHOW_REFRESH   = getSetting('SHOW_REFRESH')   == 'true'
+SHOW_REFRESH   = False #getSetting('SHOW_REFRESH')   == 'true'
 SHOW_DOWNLOAD  = getSetting('SHOW_DOWNLOAD')  == 'true'
 SHOW_REPLAY    = getSetting('SHOW_REPLAY')    == 'true'
 SHOW_VIMEO     = getSetting('SHOW_VIMEO')     == 'true'

@@ -30,6 +30,7 @@ import xbmc
 
 CacheDir  = xbmc.translatePath(os.path.join(utils.PROFILE, 'c'))
 CacheSize = 1000
+sfile.rmtree(CacheDir)
 sfile.makedirs(CacheDir)
 
 
@@ -69,6 +70,8 @@ def getURLNoCache(url, agent=None):
 
 
 def getURL(url, maxSec=0, agent=None):
+    return getURLNoCache(url, agent)
+
     purgeCache()
     
     if url == None:

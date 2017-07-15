@@ -47,10 +47,17 @@ class ContextMenu(xbmcgui.WindowXMLDialog):
 
     def __init__(self, addonID, menu):
         super(ContextMenu, self).__init__()
-        self.menu = menu
+        self.menu      = menu
+        self.params    = None
+        self.paramList = None
 
         
     def onInit(self):
+        if self.paramList:
+            return
+
+        self.paramList = []
+
         line   = 38
         spacer = 20
         delta  = 0 
@@ -70,9 +77,6 @@ class ContextMenu(xbmcgui.WindowXMLDialog):
         newY = 360 - (height/2)
 
         self.getControl(5000).setPosition(self.getControl(5000).getX(), newY)
-
-        self.params    = None
-        self.paramList = []
 
         for item in self.menu:
             self.paramList.append(item[1])

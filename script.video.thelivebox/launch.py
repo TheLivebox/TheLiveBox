@@ -37,6 +37,8 @@ if __name__ == '__main__':
 
     while xbmc.getCondVisibility('Window.IsActive(okdialog)') <> 0:
         xbmc.sleep(100)
+
+    utils.verifySkin()
    
     if len(sys.argv) == 2:
         main(addonID)

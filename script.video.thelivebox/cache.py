@@ -56,13 +56,19 @@ def checkCacheDir():
 
 
 def getURLNoCache(url, agent=None):
+    url = url.replace(' ', '%20')
+    url = url.replace('@', '%40')
+
     req = urllib2.Request(url)
     if agent:
         req.add_header('User-Agent', agent)
 
-    response = urllib2.urlopen(req)
-    html     = response.read()
-    response.close()
+    try:
+        response = urllib2.urlopen(req)
+        html     = response.read()
+        response.close()
+    except:
+        html = ''
 
     html = html.replace('&apos;', '\'')
 
@@ -70,7 +76,7 @@ def getURLNoCache(url, agent=None):
 
 
 def getURL(url, maxSec=0, agent=None):
-    return getURLNoCache(url, agent)
+    #return getURLNoCache(url, agent)
 
     purgeCache()
     
@@ -111,6 +117,9 @@ def getCachedData(url):
 
 
 def addToCache(url, data):
+    if len(data) < 100:
+        return
+
     checkCacheDir()
 
     cacheKey  = createKey(url)

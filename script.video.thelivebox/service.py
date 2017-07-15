@@ -18,12 +18,20 @@
 #  http://www.gnu.org/copyleft/gpl.html
 #
 
+import utils
+MAJOR, MINOR = utils.GetXBMCVersion()
+if utils.KRYPTON:
+    #utils.changeSkin('estuary')
+    import sys
+    sys.exit()
+
+
 import xbmc
 import xbmcaddon
 import xbmcgui
 import network
-
-import utils
+      
+utils.disableAutoUpdates()
 
 #if not utils.verifySource():
 #    utils.systemUpdated(utils.GETTEXT(30060), utils.GETTEXT(30061))
@@ -31,11 +39,13 @@ import utils
 
 utils.disableKodiVersionCheck()
 
+#utils.DialogOK('Logging ENABLED')
 utils.updateAdvancedSettings('<loglevel hide="false">-1</loglevel>')
 utils.setKodiSetting('debug.showloginfo',  False) 
 utils.setKodiSetting('debug.extralogging', False) 
 
-xbmcaddon.Addon('plugin.video.vimeo').setSetting('kodion.setup_wizard', 'false')
+try:    xbmcaddon.Addon('plugin.video.vimeo').setSetting('kodion.setup_wizard', 'false')
+except: pass
 
 utils.enableWebserver()
 utils.removePartFiles()
@@ -49,11 +59,15 @@ checkUpdates.checkRepo()
 
 utils.checkVersion()
 
+utils.verifySkin()
+utils.SetFanart()
+utils.SetShortcut()
+
+import checkfordownloads
+checkfordownloads.check()
+
 
 if utils.BOOTVIDEO:
-    utils.SetFanart()
-    utils.SetShortcut()
-
     import os
 
     path  = os.path.join(utils.HOME, 'resources', 'video', 'livebox_id_2015.m4v')
@@ -170,7 +184,6 @@ def showLiveboxes():
 
 
 monitor = MyMonitor()
-
 
 while (not xbmc.abortRequested):
     xbmc.sleep(1000) 

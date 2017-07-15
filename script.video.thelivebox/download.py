@@ -183,7 +183,7 @@ def doDownload(url, dest, title, referrer='', dp=None, silent=False):
                 #Give up!
                 utils.Log('%s download canceled - too many error whilst downloading' % dest)
                 if not silent:
-                    utils.DialogOK(dest, '' , 'Download failed')
+                    utils.DialogOK(dest, '' , utils.GETTEXT(30081))
                 return
             
             resume += 1

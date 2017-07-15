@@ -1,5 +1,5 @@
 '''
-    Copyright (C) 2015 Sean Poyser (seanpoyser@gmail.com)
+    Copyright (C) 2015- Sean Poyser (seanpoyser@gmail.com)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,17 +16,13 @@
 '''
 
 import xbmc
-import xbmcaddon
 
 import os
 import re
 
-from sqlite3 import dbapi2 as sqlite3
-
 import utils
 import sfile
-
-REPO = 'repository.thelivebox'
+import s3
 
 
 #return types
@@ -35,170 +31,140 @@ UPDATED   = 1
 FAILED    = 2
 CANCELLED = 3
 CURRENT   = 4
+DECLINED  = 5
 
+
+
+PROFILE = utils.PROFILE
+ROOT    = '_software'
+FILE    = 'latest_version.txt'
 
 
 def _checkRepo():
     #return DISABLED
 
-    latestChk = getCurrentChecksum()
-    if not latestChk:
+    updated = CANCELLED
+
+    latestVersion = getLatestVersion()
+    if not latestVersion:
         return FAILED
 
-    db   = getDB()
-    conn = sqlite3.connect(db, timeout = 10, detect_types=sqlite3.PARSE_DECLTYPES, check_same_thread = False)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor() 
+    if latestVersion == '0':
+        return CURRENT
 
-    c.execute("SELECT checksum FROM repo WHERE addonID = ?", (REPO,))
+    try:    currentVersion = getCurrentVersion()
+    except: return FAILED
 
-    updated = False
-    for row in c:
-        updated = checksum(row['checksum'], latestChk)
-
-    c.close()
-
+    updated = checkLatest(currentVersion, latestVersion)
+    
     return updated
 
 
-def getDB():
-    import glob
-    path  = xbmc.translatePath('special://home/userdata/Database')
-    files = glob.glob(os.path.join(path, 'Addons*.db'))
-    files.sort()
-    return files[-1]
-
-
-def checksum(chksum, latestChk):
-    utils.Log('Current local checksum  : %s' % chksum)
-    utils.Log('Current remote checksum : %s' % latestChk)
-    if chksum == latestChk:
-        return CURRENT
-
-    dp  = utils.DialogProgress(utils.GETTEXT(30071), utils.GETTEXT(30068))
-    ret = doUpdate(dp)
-
-    dp.close()
-
-    return ret
-
-
-def doUpdate(dp):
-    addons = []
-
-    addons.append('script.video.thelivebox')
-    addons.append('plugin.video.thelivebox')
-    addons.append('plugin.video.thelivebox-admin')
-    addons.append(REPO)
-
-    versions = []
-
-    url = getURL()
-    xml = utils.GetHTML(url, maxAge=0)
-    xml = xml.replace('\t', '').replace('\r', '').replace('\n', '')
-
-    for addon in addons:
-        newer = getNewerVersion(addon, xml)
-        versions.append([addon, newer])
-
-    xbmc.executebuiltin('UpdateAddonRepos')
-
-    tries = 600
-    count = 0
-
-    while count < tries:
-        count += 1
-        percent = int(100 * count / tries)
-        dp.update(percent)
-
-        if dp.iscanceled():
-            return CANCELLED
-
-        if checkComplete(versions):
-            utils.CompleteProgress(dp, percent)
-            return UPDATED
-
-        xbmc.sleep(1000)
-
-    return FAILED
-
-
-def getURL():
-    path  = xbmcaddon.Addon(REPO).getAddonInfo('path')
-    path  = os.path.join(path, 'addon.xml')
-
-    xml = sfile.read(path)
-    url = re.compile('<info.+?>(.+?)</info>').search(xml).group(1)
-
-    return url
-
-
-def checkComplete(versions):
-    for version in versions:
-        current = getCurrentVersion(version[0])
-        utils.Log('In check complete')
-        utils.Log('Current version of %s  : %s' % (version[0], current))
-        utils.Log('Newer version of %s    : %s' % (version[0], version[1]))
-        if not latest(current, version[1]):
-            return False
-
-    return True
-
-
-def latest(current, newer):
-    if current == newer:
-        return True
-
-    lenCurrent = len(current.split('.'))
-    lenNewer   = len(newer.split('.'))
-
-    toCompare = min(lenCurrent, lenNewer)
-
-    for i in range(0, toCompare):
-        if current[i] > newer[i]:
-            return True
-
-        if current[i] < newer[i]:
-            return False
-
-    return True
-
-
-def getCurrentVersion(addonID):
-    return xbmcaddon.Addon(addonID).getAddonInfo('version')
-
-
-def getNewerVersion(addonID, xml):
-    match   = '<addon id="%s".+?version="(.+?)"' % addonID
-    version = re.compile(match).search(xml).group(1)
-
-    utils.Log('Newer version of %s  : %s' % (addonID, version))
-
-    return version
-
-
-def getCurrentChecksum():
+def getLatestVersion():
     try:
-        path = os.path.join('special://home', 'addons', REPO, 'addon.xml')
-        xml  = sfile.read(path)
-
-        url  = re.compile('<checksum>(.+?)</checksum>').search(xml).group(1)
+        url = s3.getFile(ROOT, FILE)
 
         import urllib2
         req = urllib2.Request(url)
 
         response = urllib2.urlopen(req)
-        chk     = response.read()
+        latest   = response.read()
 
-        response.close()
-        return chk
+        return latest
 
     except Exception, e:
-        utils.Log('Error in getCurrentChecksum : %s' % str(e))
         pass
 
     return None
 
+
+def getCurrentVersion():
+    return utils.ADDON.getAddonInfo('version')
+
+
+def checkLatest(current, latest):
+    if current == latest:
+        return CURRENT
+
+    if not utils.DialogYesNo(utils.GETTEXT(30115), utils.GETTEXT(30116)):
+        return DECLINED
+
+    filename = 'addon-%s.zip' % latest
+
+    url   = s3.getFile(ROOT, filename)
+    dest  = os.path.join(PROFILE, filename)
+    title = utils.GETTEXT(30117)
+    dp    = utils.DialogProgress(utils.GETTEXT(30079) % title, utils.GETTEXT(30080))
+
+    import download
+    download.doDownload(url, dest, title=title, referrer='', dp=dp, silent=False)
+
+    if not sfile.exists(dest):
+        return FAILED
+
+    extracted = extract(dest, dp)
+
+    try:    sfile.delete(dest)
+    except: pass
+
+    if not extracted:
+        return FAILED
+
+    import xbmcgui
+    xbmcgui.Window(10000).setProperty('LB_RELAUNCH', 'true')
+
+    cmd = 'UpdateLocalAddons'
+    xbmc.executebuiltin(cmd)
+
+    return UPDATED
+
+
+def extract(src, dp):
+    success = False
+    try:
+        src = xbmc.translatePath(src)
+        import zipfile
+
+        update = os.path.join(PROFILE, 'update')
+        update = xbmc.translatePath(update)
+        sfile.makedirs(update)
+
+        zin   = zipfile.ZipFile(src, 'r')
+        nItem = float(len(zin.infolist()))
+
+        index = 0
+        for item in zin.infolist():
+            index += 1
+
+            percent  = int(index / nItem *100)
+            #filename = item.filename
+
+            zin.extract(item, update)
+  
+            if dp:
+                dp.update(percent, utils.GETTEXT(30118), utils.GETTEXT(30080))
+
+        addons = os.path.join('special://home', 'addons')
+        current, folders, files = sfile.walk(update)
+
+        for folder in folders:
+            ori = os.path.join(addons, folder)
+            src = os.path.join(current, folder)
+            dst = os.path.join(addons, folder + '.temp')
+            sfile.copytree(src, dst)
+            sfile.rmtree(ori)
+            while not sfile.exists(dst):
+                xbmc.sleep(100)
+            while sfile.exists(ori):
+                xbmc.sleep(100)
+            sfile.rename(dst, ori)   
+
+        success = True
+    except:
+        success = False
+
+    sfile.delete(update)
+    return success
 
 
 def checkRepo(reportCurrent=False):
@@ -226,13 +192,18 @@ def checkRepo(reportCurrent=False):
         if reportCurrent:
             utils.DialogOK(utils.GETTEXT(30070))
 
+    elif ret == DECLINED:
+        type = 'update declined'
+
     utils.Log('checkRepo returned %s' % type)
 
     return ret
 
 
+
 def main():
     checkRepo(reportCurrent=True)
+
 
 if __name__ == '__main__': 
     main()

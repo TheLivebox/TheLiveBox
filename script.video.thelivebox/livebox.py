@@ -40,8 +40,14 @@ HOME   = utils.HOME
 ICON   = utils.ICON
 FANART = utils.FANART
 
+DEFAULTMOVIE  = utils.DEFAULTMOVIE
+DEFAULTFOLDER = utils.DEFAULTFOLDER
+
+
 DSC = utils.DSC
 SRC = utils.SRC
+
+DELIMETER = utils.DELIMETER
 
 
 VIDEO_ADDON           = utils.VIDEO_ADDON
@@ -53,7 +59,9 @@ WAITING               = utils.WAITING
 EXAM                  = utils.EXAM
 DEMO                  = utils.DEMO
 SERVER_FOLDER         = utils.SERVER_FOLDER
+LOCAL_FOLDER_ROOT     = utils.LOCAL_FOLDER_ROOT
 LOCAL_FOLDER          = utils.LOCAL_FOLDER
+RECENT_LOCAL_FOLDER   = utils.RECENT_LOCAL_FOLDER
 AMAZON_FILE           = utils.AMAZON_FILE
 AMAZON_FOLDER         = utils.AMAZON_FOLDER
 LOCAL_PLAYABLE_FOLDER = utils.LOCAL_PLAYABLE_FOLDER
@@ -115,7 +123,7 @@ def GetJSON(params, timeout):
        
     try:
         return utils.GetJSON(addr, port, params, timeout)
-    except:
+    except Exception:
         pass
 
     return {}
@@ -272,15 +280,99 @@ def DoMainList():
     return len(list) > 0
 
 
-def AddFolderItems(_folder):
+def CheckForVideoUpdates():
+    extDrive = utils.getExternalDrive()
+    if not sfile.exists(extDrive):
+        return False
+
+    client = utils.GetClient()
+
+    amzUpdate = ''
+
+    if len(client) > 0:
+        amzUpdate = client + DELIMETER
+    
+    amzUpdate += '_update' + DELIMETER
+    files      = utils.getAllPlayableFiles(extDrive)
+    updates    = s3.getAllFiles(amzUpdate)
+
+ 
+    for key in updates.keys():
+        toAdd  = True
+        update = updates[key]
+
+        key = key.replace(amzUpdate, extDrive, 1).replace(DELIMETER, os.sep)
+       
+        if key in files:
+            #check if update is different size
+           
+            current = files[key]
+
+            newSize  = update[1]
+            currSize = current[1]            
+
+            if newSize == currSize:
+                toAdd = False
+
+            dst = current[0]
+
+        else:
+            src    = update[0]
+            dst    = src.replace(amzUpdate, extDrive, 1)
+            
+        if toAdd and utils.isFilePlayable(dst):
+            return True
+
+    return False
+
+
+def AddRootFolderItems():
+    extDrive = utils.getExternalDrive()
+    if not sfile.exists(extDrive):
+        AddFolderItems('')
+        return
+
+    folder       = DEFAULTFOLDER
+    browseFolder = utils.GETTEXT(30055)
+    menu         = getGlobalMenu()
+
+    AddDir(GETTEXT(30119), LOCAL_FOLDER,    url=extDrive, image=folder, isFolder=True, isPlayable=False, desc=browseFolder, plot=GETTEXT(30119), contextMenu=menu, replaceItems=True)
+    AddDir(GETTEXT(30120), UPDATE_FILE_CHK, url='',       image=folder, isFolder=True, isPlayable=False, desc=browseFolder, plot=GETTEXT(30120), contextMenu=menu, replaceItems=True)
+
+
+
+def AddLocalRootItems():
     if not SHOW_LOCAL:
         return
 
+    if not CheckForVideoUpdates():
+        AddFolderItems('')
+        #AddRecentFolderItems('') #SJP
+        return
+
+    return AddFolderItems('') #SJP
+
+    label        = GETTEXT(30058)
+    folder       = DEFAULTFOLDER
+    browseFolder = utils.GETTEXT(30055)
+    menu         = getGlobalMenu()
+
+    mode = LOCAL_FOLDER_ROOT
+    mode = LOCAL_FOLDER
+    AddDir(label, mode, url='', image=folder, isFolder=True, isPlayable=False, desc=browseFolder, plot=browseFolder, contextMenu=menu, replaceItems=True)
+
+
+def AddRecentFolderItems(_folder):
+    #more or less same as AddFolderItems (below), but with maxAge passed in to parse folder, and RECENT_LOCAL_FOLDER mode
+    if not SHOW_LOCAL:
+        return
+        
     ignore = ['_', '.']
     if SHOW_HIDDEN:
         ignore = []
 
-    items = utils.parseFolder(_folder, GETTEXT(30058), ignore=ignore)
+    items = utils.parseFolder(_folder, GETTEXT(30121), True, ignore=ignore, maxAge=86400)
+
     if len(items) == 0:
         return
 
@@ -288,8 +380,54 @@ def AddFolderItems(_folder):
     playVideo    = utils.GETTEXT(30056)
     playFolder   = utils.GETTEXT(30098)
 
-    file   = 'DefaultMovies.png'
-    folder = 'DefaultFolder.png'
+    file   = DEFAULTMOVIE
+    folder = DEFAULTFOLDER
+
+    for item in items:
+        label      = item[0]
+        url        = item[1]
+        isPlayable = item[2]
+        isFolder   = item[3]
+        plot       = utils.getLocalContent(url, DSC)
+
+        if isPlayable:
+            if isFolder:
+                menu = getGlobalMenu()
+                menu.append((GETTEXT(30062), '?mode=%d&url=%s' % (LOCAL_PLAYABLE_FOLDER, url)))
+                menu.append((GETTEXT(30103), '?mode=%d&url=%s' % (DELETE_LOCAL_FOLDER,   url)))
+                AddDir(label, LOCAL_PLAYABLE_FOLDER, url=url, image=file, isFolder=False, isPlayable=True, desc=playFolder, plot=plot, contextMenu=menu, replaceItems=True)
+            else:
+                menu = getGlobalMenu()
+                menu.append((GETTEXT(30063), '?mode=%d&url=%s' % (LOCAL_PLAYABLE_FOLDER, _folder)))
+                menu.append((GETTEXT(30097), '?mode=%d&url=%s' % (DELETE_LOCAL_FILE, url)))
+                AddDir(label, LOCAL_FILE, url=url, image=file, isFolder=False, isPlayable=True, desc=playVideo, plot=plot, contextMenu=menu, replaceItems=True)
+        else:
+            menu = getGlobalMenu()
+            menu.append((GETTEXT(30062), '?mode=%d&url=%s' % (LOCAL_PLAYABLE_FOLDER, url)))
+            menu.append((GETTEXT(30103), '?mode=%d&url=%s' % (DELETE_LOCAL_FOLDER,   url)))
+            AddDir(label, RECENT_LOCAL_FOLDER, url=url, image=folder, isFolder=True, isPlayable=False, desc=browseFolder, plot=plot, contextMenu=menu, replaceItems=True)
+
+
+
+def AddFolderItems(_folder):
+    if not SHOW_LOCAL:
+        return
+        
+    ignore = ['_', '.']
+    if SHOW_HIDDEN:
+        ignore = []
+
+    items = utils.parseFolder(_folder, GETTEXT(30058), True, ignore=ignore)
+
+    if len(items) == 0:
+        return
+
+    browseFolder = utils.GETTEXT(30055)
+    playVideo    = utils.GETTEXT(30056)
+    playFolder   = utils.GETTEXT(30098)
+
+    file   = DEFAULTMOVIE
+    folder = DEFAULTFOLDER
 
     for item in items:
         label      = item[0]
@@ -317,6 +455,9 @@ def AddFolderItems(_folder):
 
 
 def MainList():
+    DoMainList()
+    return
+
     attempts = 0
     while attempts < 5:
         attempts += 1
@@ -443,6 +584,9 @@ def AddPlaylistToPlaylist(title, image, url, mode, isFirst=False):
 def AddToPlaylist(title, image, url, mode=0, isFirst=False):
     windowed = utils.getSetting('PLAYBACK_MODE') == '1'
 
+    if image == DEFAULTMOVIE:
+        image = ICON  
+
     if mode > 0:
         u  = 'plugin://plugin.video.thelivebox/'
         u += '?mode=%d'   % (int(mode) + 10000)
@@ -474,7 +618,7 @@ def ExaminationRoom():
 
     for video in videos:
         image  = video[2]
-        fanart = image.replace('_200x150.jpg', '_1200x800.jpg')
+        fanart = ''#image.replace('_200x150.jpg', '_1200x800.jpg')
         AddDir(video[0], VIDEO_ADDON, video[1], image, fanart, isPlayable=True, desc=video[3], plot=video[4], contextMenu=menu, replaceItems=True)
 
 
@@ -639,6 +783,14 @@ def ParseLocalFolder(url):
     AddFolderItems(url)
 
 
+def ParseRecentLocalFolder(url):
+    AddRecentFolderItems(url)
+
+
+def ParseLocalRootFolder():
+    AddRootFolderItems()
+
+
 def ParseRemoteFolder(url, mode):   
     videos = []
     list = 'plugin://plugin.video.thelivebox/?mode=%d&url=%s' % (mode, urllib.quote_plus(url))
@@ -757,6 +909,11 @@ def replay():
     REPEAT = None
 
 
+def showVimeo():
+    return SHOW_VIMEO
+
+
+
 def main(params):
     try:    mode = int(urllib.unquote_plus(params['mode']))
     except: mode = None
@@ -810,17 +967,35 @@ def main(params):
     elif mode == SERVER_FOLDER or mode == AMAZON_FOLDER:
         try:    
             ParseRemoteFolder(url, mode)
-
+            if url == utils.GetClient() and showVimeo():
+                ExaminationRoom()
         except Exception, e:
+            utils.DialogOK(str(e))
             utils.Log('Error in SERVER_FOLDER mode(%d) - %s' % (mode, str(e)))
 
 
+    elif mode == LOCAL_FOLDER_ROOT:
+        try:
+            ParseLocalRootFolder()
+        except Exception, e:
+            utils.Log('Error in LOCAL_FOLDER mode - %s' % str(e))
+
+
     elif mode == LOCAL_FOLDER:
-        try:    
+        try:
             ParseLocalFolder(url)
 
         except Exception, e:
             utils.Log('Error in LOCAL_FOLDER mode - %s' % str(e))
+
+
+    elif mode == RECENT_LOCAL_FOLDER:
+        try:
+            ParseRecentLocalFolder(url)
+
+        except Exception, e:
+            utils.Log('Error in RECENT_LOCAL_FOLDER mode - %s' % str(e))
+
 
 
     elif mode == CLEARCACHE:
@@ -858,12 +1033,7 @@ def main(params):
 
 
     elif mode == UPDATE_FILE_CHK:
-        extDrive = utils.getExternalDrive()
-        if not sfile.exists(extDrive):
-            APPLICATION.closeBusy()
-            utils.DialogOK(GETTEXT(30087) , GETTEXT(30088))
-        else:
-            GenericList(UPDATE_FILE_CHK)
+        GenericList(UPDATE_FILE_CHK)
 
     elif mode == UPDATE_FILE:
         UpdateFile(url)
@@ -874,7 +1044,7 @@ def main(params):
 
     else:
         MainList()
-        AddFolderItems('')
+        AddLocalRootItems()
 
     if utils.getSetting('FALLBACK').lower() == 'true':
         mode = GETTEXT(30053)
@@ -884,8 +1054,8 @@ def main(params):
         mode  = GETTEXT(30045)
 
 
-    title  = '%s [COLOR=blue]-[/COLOR] v%s' % (GETTEXT(30000), utils.VERSION)# + ' [COLOR=blue]-[/COLOR] ' + mode
-    footer = '%s [COLOR=blue]-[/COLOR] v%s' % (GETTEXT(30000), utils.VERSION)# + ' [COLOR=blue]-[/COLOR] ' + mode
+    title  = '%s - v%s' % (GETTEXT(30000), utils.VERSION)
+    footer = '%s - v%s' % (GETTEXT(30000), utils.VERSION)
 
     APPLICATION.setProperty('LB_TITLE',    title)
     APPLICATION.setProperty('LB_MAINDESC', GETTEXT(30019))

@@ -63,6 +63,31 @@ VERSION = utils.VERSION
 ONE_DAY = datetime.timedelta(days=1)
 ONE_SEC = datetime.timedelta(seconds=1)
 
+MAIN  = 5000 #everything
+PAGE1 = 5001 #main video page
+PAGE2 = 5002 #connect to internet
+PAGE3 = 5005 #enter email
+PAGE4 = 5011 #initial setup
+PAGE5 = 5014 #new video available page
+
+CONNECT_INTERNET   = 5003
+SKIP_INTERNET      = 5004
+SKIP_EMAIL         = 5006
+SUBMIT_EMAIL       = 5007
+ENTER_EMAIL        = 5008
+SETTINGS           = 5009
+CHECK_FOR_DOWNLOAD = 5010
+SKIP_INITIAL       = 5012
+SUBMIT_INITIAL     = 5013
+FILES_UPDATED      = 5015
+
+
+UPDATE_FILE_CHK     = utils.UPDATE_FILE_CHK
+UPDATE_FILE         = utils.UPDATE_FILE
+RECENT_LOCAL_FOLDER = utils.RECENT_LOCAL_FOLDER
+AMAZON_FILE         = utils.AMAZON_FILE
+AMAZON_FOLDER       = utils.AMAZON_FOLDER
+
 
 def convertToTime(now, index, isEnd=False):
     nHours = int(index)
@@ -87,6 +112,10 @@ class Application(xbmcgui.WindowXML):
 
     def __init__(self, addonID):        
         super(Application, self).__init__()  
+
+        #in case it was set whilst addon not running
+        xbmcgui.Window(10000).clearProperty('LB_RELAUNCH')
+
         self.ADDONID         = addonID
         self.skin            = utils.getSetting('SKIN')
         self.properties      = {}        
@@ -104,10 +133,21 @@ class Application(xbmcgui.WindowXML):
         self.playbackStart = None
         self.playbackEnd   = None
 
+        self.firstRun             = True
+        self.checkForUpdatesFreq  = 1 #immediately
+        self.checkForInternetFreq = 5
+        self.checkForInternet     = True
+        self.checkForInternetSkip = False 
+        self.checkForEmail        = True
+        self.checkForInitialSetup = True
+
+        self.updatedPageVisible = False
+        self.updatePageDelay    = 0
+
 
     def onInit(self): 
         self.clearList()
-
+       
         if self.start:            
             self.lists.append([]) 
             start      = self.start
@@ -116,7 +156,9 @@ class Application(xbmcgui.WindowXML):
             return
             
         if len(self.lists) < 1:            
-            self.onParams('init')
+            self.doFirstRun()
+            if len(self.lists) < 1:   
+                self.onParams('init')
             return
 
         #add new list so we can just call onBack        
@@ -142,6 +184,74 @@ class Application(xbmcgui.WindowXML):
         self.closeOSD()
         xbmcgui.WindowXML.close(self)
 
+
+    def writeListsToFile(self):
+        file = os.path.join(utils.HOME, 'resources', 'lists.txt')
+        f = open(file, 'w')
+        for list in self.lists:
+            f.write('\r\n----------------------------------------------------------------------------------\r\n')
+            f.write(str(list))
+            f.write('\r\n----------------------------------------------------------------------------------\r\n')
+        f.close()
+
+
+
+    def checkForUpdatedFiles(self):
+        if self.updatedPageVisible:
+            return
+
+        if len(xbmcgui.Window(10000).getProperty('LB_CHECK_FOR_UPDATED_FILES')) == 0:
+            return
+
+        self.updatePageDelay -= 1
+
+        if self.updatePageDelay > 0:
+            return
+
+        if xbmc.Player().isPlaying():
+            return
+       
+        self.updatedPageVisible = True
+
+        self.showControl(PAGE1, False)
+        self.showControl(PAGE2, False)
+        self.showControl(PAGE3, False)
+        self.showControl(PAGE4, False)
+        self.showControl(PAGE5, True)
+        self.setFocusID(FILES_UPDATED)
+
+
+    def hideAllPages(self):
+        self.updatedPageVisible = False
+        self.showControl(PAGE1, False)
+        self.showControl(PAGE2, False)
+        self.showControl(PAGE3, False)
+        self.showControl(PAGE4, False)
+        self.showControl(PAGE5, False)
+
+
+    def updatedFilesClicked(self):
+        self.showControl(PAGE2, False)
+        self.showControl(PAGE3, False)
+        self.showControl(PAGE4, False)
+        self.showControl(PAGE5, False)
+        self.showControl(PAGE1, True)
+
+        xbmcgui.Window(10000).clearProperty('LB_CHECK_FOR_UPDATED_FILES')
+
+        self.updatedPageVisible = False
+
+        self.updatePageDelay = 300 #don't show again for at least 5 minutes
+
+        self.browseUpdatedContent()
+
+
+    def browseUpdatedContent(self):
+        extDrive = utils.getExternalDrive()
+        if sfile.exists(extDrive):
+            url = urllib.quote_plus(extDrive)
+            self.onParams('?mode=%d&url=%s' % (RECENT_LOCAL_FOLDER, url)) 
+            
 
     def checkPlaybackTimes(self):
         now = datetime.datetime.today()
@@ -213,8 +323,10 @@ class Application(xbmcgui.WindowXML):
     def onTimer(self):  
         self.counter += 1
 
+        #self.writeListsToFile()
+
         if xbmcgui.Window(10000).getProperty('LB_RELAUNCH') == 'true':
-            xbmcgui.Window(10000).setProperty('LB_RELAUNCH', 'false')
+            xbmcgui.Window(10000).clearProperty('LB_RELAUNCH')
             self.doRelaunch()
             return
 
@@ -222,6 +334,19 @@ class Application(xbmcgui.WindowXML):
             if self.getListSize() > 0:                
                 self.containerRefresh()
 
+        #if self.counter % self.checkForInternetFreq == 0:
+        #    if xbmc.Player().isPlaying() or xbmc.getCondVisibility('Window.IsActive(addonsettings)') == 1:
+        #        self.checkForInternetFreq = 10
+        #    else:
+        #        self.checkForInternetFreq = 60
+        #        self.checkInternet(restore=PAGE1)
+
+        if self.counter % self.checkForUpdatesFreq == 0:
+            self.checkForUpdatesFreq = 3600 #hourly 
+            import checkfordownloads
+            checkfordownloads.check()
+
+        self.checkForUpdatedFiles()
         self.checkPlaybackTimes()
         self.resetTimer()
 
@@ -242,6 +367,15 @@ class Application(xbmcgui.WindowXML):
         pass
 
 
+    def isInternetRequired(self, restore):
+        self.checkInternet(restore)
+        if self.isInternetConnected():
+            return True
+
+        utils.DialogOK(GETTEXT(30122))
+        return False
+
+
     def onAction(self, action):
         #see here https://github.com/xbmc/xbmc/blob/master/xbmc/guilib/Key.h for the full list
 
@@ -250,13 +384,13 @@ class Application(xbmcgui.WindowXML):
 
         if actionId != 107:
             utils.Log('onAction actionID %d' % actionId)
-            utils.Log('onAction buttonID %d' % buttonId)            
+            utils.Log('onAction buttonID %d' % buttonId)  
 
         if actionId in [ACTION_CONTEXT, ACTION_RCLICK]:
             return self.onContextMenu()
             
         if actionId in [ACTION_PARENT_DIR, ACTION_BACK] or buttonId in [ESC]:
-            return self.onBack()        
+            return self.onBack()     
 
         select = (actionId == ACTION_SELECT) or (actionId == ACTION_LCLICK)
 
@@ -267,7 +401,22 @@ class Application(xbmcgui.WindowXML):
         except: id = 0
 
 
-        if id == MAINLIST:   
+        if id == CHECK_FOR_DOWNLOAD:            
+            if self.isInternetRequired(restore=PAGE1):
+                self.checkForDownloadableContent()  
+
+
+        if id == FILES_UPDATED:
+            self.updatedFilesClicked()
+
+
+        if id == SUBMIT_INITIAL:
+            self.onParams('Init')
+            self.checkForDownloadableContent()
+            self.checkForInitialSetup = False
+
+
+        if id == MAINLIST: 
             liz        = self.getSelectedItem()
             param      = liz.getProperty('Param')
             image      = liz.getProperty('Image')
@@ -279,9 +428,16 @@ class Application(xbmcgui.WindowXML):
                 return self.onBack()
 
             if param:
-                self.stopTimer()
+                if not utils.checkForExternalDrive():
+                    return
+
+                if mode in [AMAZON_FILE, AMAZON_FOLDER, UPDATE_FILE]:
+                    if not self.isInternetRequired(restore=PAGE1):
+                        return
+
+                #self.stopTimer()
                 self.onParams(param, isFolder)
-                self.resetTimer()
+                #self.resetTimer()
 
         if id == VIDEOWINDOW:   
             xbmc.executebuiltin('Action(fullscreen)')  
@@ -290,12 +446,51 @@ class Application(xbmcgui.WindowXML):
     def onClick(self, controlId):        
         utils.Log('onClick %d' % controlId)
 
+        if controlId == SKIP_INTERNET:
+            self.checkForInternetSkip = True
+            self.checkForInternet     = False
+            return
+
+        if controlId == CONNECT_INTERNET:
+            import androidApp
+            androidApp.launchAndroid('com.mbx.settingsmbox')
+            return
+
+        if controlId == SKIP_INITIAL:
+            self.checkForInitialSetup = False
+            return
+
+        if controlId == SKIP_EMAIL:
+            self.checkForEmail = False
+            return
+
+        if controlId == SUBMIT_EMAIL:
+            control = self.getControl(ENTER_EMAIL)
+            text    = control.getLabel().strip()
+
+            if len(text) > 0:
+                self.checkForEmail = False
+                utils.setSetting('CLIENT', text)
+                retur
+
+        if controlId == ENTER_EMAIL:
+            control = self.getControl(ENTER_EMAIL)
+            text    = control.getLabel().strip()
+            text    = utils.GetText(title=GETTEXT(30016), text=text, hidden=False, allowEmpty=True)
+            if text == None:
+                return
+            control.setLabel(text if len(text) > 0 else ' ')
+            return
+
+        if controlId == SETTINGS:
+            self.addonSettings()
+            
 
     def verifyClose(self):
         return utils.VerifyPassword()
 
 
-    def onBack(self): 
+    def onBack(self):
         if len(self.lists) == 1:
             if not self.verifyClose():
                 utils.DialogOK(utils.GETTEXT(30054))
@@ -309,6 +504,9 @@ class Application(xbmcgui.WindowXML):
 
         self.list = self.lists[-1]
 
+        try:    self.getControl(MAINLIST).selectItem(0)
+        except: pass
+
         if len(self.list) == 0:
             #addon must have originally been started with a
             #parameter therefore reset to initial position
@@ -319,7 +517,7 @@ class Application(xbmcgui.WindowXML):
         if hasattr(functionality, 'onBack'):
            functionality.onBack(self, self.list[0])
            
-        self.addItems(self.list)
+        self.addItems(self.list, False)
             
             
     def onContextMenu(self):
@@ -351,6 +549,12 @@ class Application(xbmcgui.WindowXML):
             return
            
         self.onParams(params, isFolder=False)
+
+
+    def setFocusID(self, id):
+        control = self.getControl(id)
+        if control:
+            self.setFocus(control)
         
 
     def showControl(self, id, show):
@@ -489,8 +693,20 @@ class Application(xbmcgui.WindowXML):
         return True
 
 
+    def checkForDownloadableContent(self):
+        if utils.checkForExternalDrive():
+            self.onParams('?mode=%d' % UPDATE_FILE_CHK)
+        
+
     def addonSettings(self):
+        self.stopTimer()
+        
+        self.hideAllPages()
+
         xbmcaddon.Addon(self.ADDONID).openSettings()
+
+        self.showControl(PAGE1, True)
+        self.resetTimer()
         return True
         
         
@@ -549,12 +765,15 @@ class Application(xbmcgui.WindowXML):
             progress.setPercent(perc)   
         
 
-    def addItems(self, theList):  
+    def addItems(self, theList, checkForExternalDrive=True):  
         self.clearList()
         self.showControl(MAINGROUP, False)   
                         
         ignore = True
         index  = 1 #not '0' because first item in list is the params item
+
+        if checkForExternalDrive and len(theList) == 1:
+            utils.checkForExternalDrive()
         
         for item in theList:
             if ignore:
@@ -590,9 +809,11 @@ class Application(xbmcgui.WindowXML):
                 for item in infoLabels:     
                     liz.setProperty(item, infoLabels[item])
 
-            self.addItem(liz)  
+            self.addItem(liz)
+
 
         self.showControl(MAINGROUP, True) 
+        self.setFocusID(MAINLIST)
         self.listSize = self.getListSize()
 
         if self.timer == None:
@@ -600,6 +821,12 @@ class Application(xbmcgui.WindowXML):
   
 
     def onParams(self, params, isFolder=True):
+        try:
+            if self.lists[-1][0] == params: #are we refreshing current folder?
+                return self.containerRefresh()
+        except:
+            pass
+
         self.stopTimer()
 
         emptyLength = 2
@@ -617,13 +844,19 @@ class Application(xbmcgui.WindowXML):
         if isFolder:
             self.showBusy()
 
+        xbmcgui.Window(10000).clearProperty('LB_CHECK_FOR_DOWNLOADABLE')
         functionality.onParams(self, params)
+
+        showDownload = xbmcgui.Window(10000).getProperty('LB_CHECK_FOR_DOWNLOADABLE') == 'true'
+        self.showControl(CHECK_FOR_DOWNLOAD, showDownload) 
+
         self.closeBusy()
 
-        if isFolder:            
+        if isFolder:          
             self.addItems(self.list)
             if len(self.list) < emptyLength:
-                self.onBack()
+                if len(self.lists) > 1: #don't go back from very first list
+                    self.onBack()
 
         self.resetTimer()
 
@@ -660,3 +893,136 @@ class Application(xbmcgui.WindowXML):
             xbmc.sleep(1000)            
             if xbmc.getCondVisibility('player.paused') == 1:
                 xbmc.Player().pause()
+
+
+    def doFirstRun(self):
+        if not self.firstRun:
+            return
+
+        self.showControl(PAGE1, False)
+        self.showControl(PAGE2, False)
+        self.showControl(PAGE3, False)
+        self.showControl(PAGE4, False)
+        self.showControl(PAGE5, False)
+        self.showControl(CHECK_FOR_DOWNLOAD, False)
+
+        self.getControl(MAIN).setPosition(0,0)
+
+        hadClient = utils.HasClient()
+
+        if True: #utils.getSetting('FIRSTRUN').lower() == 'true':
+            utils.setSetting('FIRSTRUN', 'false')
+            self.checkInternet()
+            self.checkEmailAddress()
+            if (not hadClient) and utils.HasClient():
+                self.checkInitialSetup()
+
+        self.showControl(PAGE5, False)
+        self.showControl(PAGE4, False)
+        self.showControl(PAGE3, False)
+        self.showControl(PAGE2, False)
+        self.showControl(PAGE1, True)  
+
+        self.firstRun = False 
+
+
+    def isInternetConnected(self):
+        try:
+            url  = ''
+            urls = []
+            #urls.append('www.google.com')
+            urls.append('www.microsoft.com')
+
+            import random
+            url  = random.choice(urls)
+
+            import httplib
+            conn = httplib.HTTPConnection(url)
+            conn.request('HEAD', '/')
+
+            return True
+
+        except Exception, e:
+            utils.log('Failed to connect to %s : %s' % (url, str(e)))            
+
+        return False 
+
+
+    def isInternetConnected_alternative(self):
+        import socket
+
+        host    = "8.8.8.8"
+        port    = 53
+        timeout = 3
+
+        try:
+            socket.setdefaulttimeout(timeout)
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+            return True
+
+        except Exception, e:
+            utils.log('Failed to connect to internet : %s' % str(e)) 
+
+        return False           
+
+
+    def checkInternet(self, restore=None):
+        if self.checkForInternetSkip:
+            return
+
+        self.checkForInternet = not self.isInternetConnected() 
+
+        if not self.checkForInternet:
+            return
+
+        self.showControl(PAGE1, False)
+        self.showControl(PAGE3, False)
+        self.showControl(PAGE4, False)
+        self.showControl(PAGE5, False)
+        self.showControl(PAGE2, True)
+        self.setFocusID(CONNECT_INTERNET)
+
+        while self.checkForInternet:
+            xbmc.sleep(100)
+            if self.isInternetConnected():
+                self.checkForInternet = False
+
+        if restore:
+            self.showControl(PAGE2,   False)
+            self.showControl(restore, True)
+
+
+    def checkEmailAddress(self):
+        self.checkForEmail = not utils.HasClient()
+
+        if not self.checkForEmail:
+            return
+
+        self.showControl(PAGE1, False)
+        self.showControl(PAGE2, False)
+        self.showControl(PAGE4, False)
+        self.showControl(PAGE5, False)
+        self.showControl(PAGE3, True)
+        self.setFocusID(ENTER_EMAIL)
+
+        while self.checkForEmail:
+            xbmc.sleep(100)
+            if utils.HasClient():
+                self.checkForEmail = False
+
+
+    def checkInitialSetup(self):
+        self.showControl(PAGE1, False)
+        self.showControl(PAGE2, False)
+        self.showControl(PAGE3, False)
+        self.showControl(PAGE5, False)
+        self.showControl(PAGE4, True)
+        self.setFocusID(SUBMIT_INITIAL)
+
+        self.checkForInitialSetup = True
+
+        while self.checkForInitialSetup:
+            xbmc.sleep(100)
+
+        xbmcgui.Window(10000).clearProperty('LB_RELAUNCH')
+        

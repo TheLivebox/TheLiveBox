@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
 	<category label="30040">
-      		<setting id="VERSION"  type="text" label="Version"  default="0.0.0" visible="false"/>
+      		<setting id="VERSION"  type="text" label="Version"   default="0.0.0" visible="false"/>
+                <setting id="FIRSTRUN" type="bool" label="First Run" default="true"  visible="false"/>
 
                 <setting id="PARAMS"   type="text" label="Parameters" default="" visible="false"/>
 		
 		<setting id="DEMO"     type="bool"   label="30047" default="false" visible="false"/>
 		
-		<setting id="CLIENT"    type="text"   label="30016" default=""/>		
+		<setting id="CLIENT"    type="text"   label="30016" default=""/>
+                <setting id="SHOW_VIMEO" type="bool"  label="35004" default="false" visible="false"/>		
 		
-		<setting id="PLAYBACK_MODE"   type="enum"   label="30030" lvalues="30031|30032" default="0"/>
+		<setting id="PLAYBACK_MODE"   type="enum"   label="30030" lvalues="30031|30032" default="0" visible="false"/>
 
                 <setting id="PLAYBACK_LIMIT_MODE"  type="enum"   label="35110" lvalues="35113|35111|35112" default="0" enable="True"/>		
                 <setting id="PLAYBACK_LIMIT"       type="enum"   label="35100" lvalues="35101|35102|35103|35104" default="0" visible="eq(-1,1)"/>		
@@ -21,8 +23,14 @@
 		<setting id="EXT_DRIVE" type="folder" label="30065" default="/storage/external_storage/sda1/"/>	
 		
 		<setting id="DOWNLOAD_LOC" type="enum" label="30092" lvalues="30094|30093" default="0" visible="false"/>
-				
-                <setting label="35008" type="action" action="RunScript($CWD/androidApp.py, com.mbx.settingsmbox)"               />
+                <setting label="35015" type="action" action="RunScript($CWD/androidApp.py, com.android.browser, android.intent.action.VIEW, ,http://www.thelivebox.com/lvbxmanual)" />
+
+        </category> 
+	
+	<category label="35013">
+                <setting label="35008" type="action" action="RunScript($CWD/androidApp.py, SETTINGS)" />
+                <setting label="35014" type="action" action="RunScript($CWD/sysSettings.py)" option="close" />
+
                 <setting label="35009" type="action" action="RunScript($CWD/androidApp.py, com.android.chrome,  android.intent.action.VIEW, ,http://lvbxmag.com)" />
                 <setting label="35011" type="action" action="RunScript($CWD/androidApp.py, com.android.browser, android.intent.action.VIEW, ,http://lvbxmag.com)" />
                 <setting label="35010" type="action" action="RunScript($CWD/androidApp.py, com.android.vending)"                />
@@ -30,18 +38,17 @@
 		<setting label="30066" type="action" action="RunScript($CWD/checkUpdates.py)"                                   />
 	</category> 
 	
-	<category label="35000">
+	<category1 label="35000">
 		<setting id="SKIN" type="select" label="30022" source="../../addons/script.video.thelivebox/resources/skins/" mask="/" default="Thumbnails"/>
-	
   	    	<setting id="SHOW_CONFIGURE"     type="bool"   label="35001" default="true"  visible="true"/>
-  	    	<setting id="SHOW_REFRESH"       type="bool"   label="35002" default="true"  visible="false"/>
+  	    	<setting id="SHOW_REFRESH"       type="bool"   label="35002" default="true"  visible="true"/>
   	    	<setting id="SHOW_DOWNLOAD"      type="bool"   label="35003" default="true"  visible="true"/>
-  	    	<setting id="SHOW_VIMEO"         type="bool"   label="35004" default="true"  visible="true"/>
+  	    	<setting id="SHOW_VIMEO"         type="bool"   label="35004" default="true"  visible="false"/>
   	    	<setting id="SHOW_REPLAY"        type="bool"   label="35012" default="true"  visible="true"/>
   	    	<setting id="SHOW_AMAZON"        type="bool"   label="35005" default="true"  visible="true"/>
   	    	<setting id="SHOW_LOCAL"         type="bool"   label="35006" default="true"  visible="true"/>
   	    	<setting id="SHOW_HIDDEN"        type="bool"   label="35007" default="false" visible="true"/>
-	</category> 
+	</category1> 
 		
 	<category1 label="30041">
 		<setting id="HOST_MODE"   type="enum"      label="30033" lvalues="30034|30035" default="0"/>

@@ -16,7 +16,7 @@
 '''
 
 
-def launchAndroid(app, intent, dataType, dataURI):
+def launchAndroid(app, intent='', dataType='', dataURI=''):
     import utils
     utils.Log('Launching Android App : %s' % app)
 
@@ -26,6 +26,26 @@ def launchAndroid(app, intent, dataType, dataURI):
     utils.Log(cmd)
 
     xbmc.executebuiltin(cmd)
+
+
+def getSettingsApp():
+    try:
+        import os
+        import sfile
+        log = sfile.read(os.path.join('special://temp', 'kodi.log'))
+
+        if 'LVBX' in log:
+            return 'com.mbx.settingsmbox'
+
+        if 'Manufacturer: MBX' in log:
+            return 'com.mbx.settingsmbox'
+
+        if 'Brand: MBX' in log:
+            return'com.mbx.settingsmbox'
+    except:
+        pass
+
+    return 'com.android.settings'
 
    
 if __name__ == '__main__':
@@ -47,4 +67,6 @@ if __name__ == '__main__':
             pass
 
     if app:
+        if app == 'SETTINGS':
+            app = getSettingsApp()
         launchAndroid(app, intent, dataType, dataURI)

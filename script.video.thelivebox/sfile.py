@@ -26,6 +26,10 @@ import os
 def exists(filename):
     if xbmcvfs.exists(filename):
         return True
+ 
+    if xbmcvfs.exists(filename+os.sep):
+        return True
+
     return os.path.exists(filename)
 
 
@@ -49,6 +53,18 @@ def isdir(folder):
 
 def file(filename, type):
     return xbmcvfs.File(filename, type)
+
+
+def age(filename):
+    #returns age of file in seconds
+    try:
+        import time
+        ctime = xbmcvfs.Stat(filename).st_ctime()
+        now   = time.time()
+        age   = now - ctime
+        return age
+    except:
+        return -1
 
 
 def size(filename):
@@ -106,7 +122,18 @@ def related(filename):
 
 
 def makedirs(path):
+    if exists(path):
+        return
+
+    #xbmcvfs uses caching so remove just
+    #in case it is still in cache
+    rmtree(path)
+
     xbmcvfs.mkdirs(path)
+
+    #if all else fails try using os
+    try:   os.makedirs(path)
+    except: pass
 
 
 def delete(filename):

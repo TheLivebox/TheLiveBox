@@ -39,6 +39,10 @@ TITLE   = ADDON.getAddonInfo('name')
 VERSION = ADDON.getAddonInfo('version')
 ICON    = os.path.join(HOME, 'logo1.png')
 FANART  = os.path.join(HOME, 'fanart.jpg')
+SKIN    = 'livebox'
+
+DEFAULTMOVIE  = os.path.join(HOME, 'resources', 'images', 'defaultMovie.png')
+DEFAULTFOLDER = os.path.join(HOME, 'resources', 'images', 'defaultFolder.png')
 
 HOME = HOME.replace('storage/emulated/0', 'sdcard') #for Android
 
@@ -53,7 +57,9 @@ WAITING               = 700
 EXAM                  = 800
 DEMO                  = 900
 SERVER_FOLDER         = 1000
-LOCAL_FOLDER          = 1100
+LOCAL_FOLDER_ROOT     = 1100     
+LOCAL_FOLDER          = 1150
+RECENT_LOCAL_FOLDER   = 1175
 AMAZON_FILE           = 1200
 AMAZON_FOLDER         = 1300
 LOCAL_PLAYABLE_FOLDER = 1400
@@ -96,9 +102,15 @@ MAJOR, MINOR = GetXBMCVersion()
 FRODO        = (MAJOR == 12) and (MINOR < 9)
 GOTHAM       = (MAJOR == 13) or (MAJOR == 12 and MINOR == 9)
 HELIX        = (MAJOR == 14) or (MAJOR == 13 and MINOR == 9)
+ISENGARD     = (MAJOR == 15) or (MAJOR == 14 and MINOR == 9)
+JARVIS       = (MAJOR == 16) or (MAJOR == 15 and MINOR == 9)
+KRYPTON      = (MAJOR == 17) or (MAJOR == 16 and MINOR == 9)
 
 
 def getSetting(param):
+    if param.lower() == 'skin':
+        return 'Thumbnails'
+
     return xbmcaddon.Addon(ADDONID).getSetting(param)
 
 
@@ -114,29 +126,32 @@ def setSetting(param, value):
 
 
 GETTEXT        = ADDON.getLocalizedString
-BOOTVIDEO      = getSetting('BOOTVIDEO')      == 'true'
-SHOW_CONFIGURE = getSetting('SHOW_CONFIGURE') == 'true'
+SHOW_CONFIGURE = False #getSetting('SHOW_CONFIGURE') == 'true'
 SHOW_REFRESH   = False #getSetting('SHOW_REFRESH')   == 'true'
-SHOW_DOWNLOAD  = getSetting('SHOW_DOWNLOAD')  == 'true'
-SHOW_REPLAY    = getSetting('SHOW_REPLAY')    == 'true'
-SHOW_VIMEO     = getSetting('SHOW_VIMEO')     == 'true'
-SHOW_AMAZON    = getSetting('SHOW_AMAZON')    == 'true'
-SHOW_LOCAL     = getSetting('SHOW_LOCAL')     == 'true'
-SHOW_HIDDEN    = getSetting('SHOW_HIDDEN')    == 'true'
+SHOW_DOWNLOAD  = True  #getSetting('SHOW_DOWNLOAD')  == 'true'
+SHOW_REPLAY    = False #getSetting('SHOW_REPLAY')    == 'true'
+SHOW_VIMEO     = False #getSetting('SHOW_VIMEO')     == 'true'
+SHOW_AMAZON    = True  #getSetting('SHOW_AMAZON')    == 'true'
+SHOW_LOCAL     = True  #getSetting('SHOW_LOCAL')     == 'true'
+SHOW_HIDDEN    = True  #getSetting('SHOW_HIDDEN')    == 'true'
+BOOTVIDEO      = getSetting('BOOTVIDEO')             == 'true'
 
 
+DEBUG = True
+def Log(text, force=False):
+    log(text, force)
 
-DEBUG = False
-def Log(text):
+def log(text, force=False):
     try:
         output = '%s V%s : %s' % (TITLE, VERSION, str(text))
         
-        if DEBUG:
+        if DEBUG or force:
             xbmc.log(output)
         else:
             xbmc.log(output, xbmc.LOGDEBUG)
     except:
-        pass        
+        pass
+      
 
 
 def Notify(message, length=10000):
@@ -187,8 +202,8 @@ def checkVersion():
     prev = getSetting('VERSION')
     curr = VERSION
 
-    if prev == curr:
-        return
+    #if prev == curr:
+    #    return
 
     setSetting('VERSION', curr)
 
@@ -237,21 +252,38 @@ def GetJSON(addr, port, params, timeout=60):
 
     req  = urllib2.Request(url)
     resp = urllib2.urlopen(req, timeout=timeout).read()
-
+    
     resp = simplejson.loads(resp) 
     return resp
 
 
 def SetFanart():
-    path = os.path.join(HOME, 'fanart.jpg')
+    resolution = getResolution()
+    if resolution != '1280x800':
+        resolution = '1920x1080'
+
+    resolution = '1280x800'
+
+    src = os.path.join(HOME, 'resources', 'images', 'fanart-%s.jpg' % resolution)
+    dst = os.path.join(HOME, 'fanart.jpg')
+
+    sfile.copy(src, dst)
+
     Execute('Skin.SetBool(UseCustomBackground)')
-    Execute('Skin.SetString(%s, %s)' % ('CustomBackgroundPath', path))
+    Execute('Skin.SetString(%s, %s)' % ('CustomBackgroundPath', src))
+
+    dst = os.path.join(HOME, 'resources', 'skins', 'Thumbnails', 'resources', 'skins', 'Default', 'media', 'lb_background.jpg')
+    sfile.copy(src, dst)
 
 
 def SetShortcut():
     param = 'HomeVideosButton1'
     value = 'script.video.thelivebox'
     Execute('Skin.SetString(%s, %s)' % (param, value))
+
+
+def HasClient():
+    return len(GetClient()) > 0
 
 
 def GetClient():
@@ -287,6 +319,123 @@ def GetHTML(url, maxAge = 86400):
 def Execute(cmd):
     Log(cmd)
     xbmc.executebuiltin(cmd) 
+
+
+def verifySkin():
+    version = '1.0.3'
+    skin    = 'skin.%s' % SKIN
+
+    if installSkin(skin, version):
+        changeSkin(skin)
+
+    hideMenus()
+
+
+def hideMenus():
+    params = []
+    params.append('HomepageHideRecentlyAddedAlbums')
+    params.append('HomepageHideRecentlyAddedVideo')
+    params.append('homepageMusicinfo')
+    params.append('homepageVideoinfo')
+    params.append('HomeMenuNoWeatherButton')
+    params.append('HomeMenuNoPicturesButton')
+    params.append('HomeMenuNoMusicButton')
+    params.append('HomeMenuNoMovieButton')
+    params.append('HomeMenuNoTVShowButton')
+    params.append('HomeMenuNoProgramsButton')
+    params.append('HomeMenuNoVideosButton')
+
+    for param in params:
+        xbmc.executebuiltin('Skin.SetBool(%s)' % param)
+
+    #xbmc.executebuiltin('Skin.Reset(HomeMenuNoVideosButton)')
+
+    setKodiSetting('lookandfeel.enablerssfeeds', False)
+
+
+import re
+def compareVersions(version1, version2):
+    def normalize(v):
+        return [int(x) for x in re.sub(r'(\.0+)*$','', v).split(".")]
+    return cmp(normalize(version1), normalize(version2))
+    
+
+
+def validateSkin(skin, reqVersion):
+    installed = xbmc.getCondVisibility('System.HasAddon(%s)' % skin) == 1
+
+    if not installed:
+        return False
+
+    dst = os.path.join('special://home', 'addons', skin)
+    if not sfile.exists(dst):
+        return False
+
+    try:    curVersion = xbmcaddon.Addon(skin).getAddonInfo('version')
+    except: curVersion = None
+
+    if not curVersion:
+        curVersion = '0'
+
+    return compareVersions(curVersion, reqVersion) >= 0
+
+
+def showBusy():
+    # needs to be returned otherwise
+    # goes out of scope and closes
+    busy = xbmcgui.WindowXMLDialog('DialogBusy.xml', '')
+    busy.show()
+    busy.getControl(10).setVisible(False)
+    return busy
+
+
+def installSkin(skin, version):
+    if HELIX:
+        sourceSkin = skin + '-Helix'
+    elif JARVIS:
+        sourceSkin = skin + '-Jarvis'
+    else:
+        return
+
+    src = os.path.join(HOME, 'resources', sourceSkin)
+    dst = os.path.join('special://home', 'addons', skin)
+
+    if validateSkin(skin, version):
+        return True
+
+    busy = showBusy()
+
+    sfile.copytree(src, dst)
+
+    count = 15 * 10 #15 seconds
+    xbmc.executebuiltin('UpdateLocalAddons')
+
+    xbmc.sleep(1000)
+    installed = xbmc.getCondVisibility('System.HasAddon(%s)' % skin) == 1 and compareVersions(xbmcaddon.Addon(skin).getAddonInfo('version'), version) >= 0
+
+    while not installed and count > 0:
+        count -= 1
+        xbmc.sleep(100)
+        installed = xbmc.getCondVisibility('System.HasAddon(%s)' % skin) == 1 and compareVersions(xbmcaddon.Addon(skin).getAddonInfo('version'), version) >= 0
+
+    busy.close()
+
+    return installed
+
+
+def changeSkin(skin):
+    xbmc.sleep(1000)
+    if getKodiSetting('lookandfeel.skin') == skin:
+        xbmc.executebuiltin('ReloadSkin()')
+        return
+        
+    setKodiSetting('lookandfeel.skin', skin)
+
+    while xbmc.getCondVisibility('Window.IsActive(yesnodialog)') == 0:
+        xbmc.sleep(10)
+
+    cmd = 'Control.Message(11,click)'
+    xbmc.executebuiltin(cmd)
 
 
 def Launch(param=None):
@@ -383,6 +532,11 @@ def disableKodiVersionCheck():
 
     if xbmc.getCondVisibility('System.HasAddon(%s)' % addID) != 1:
         return
+
+    query = '{"jsonrpc":"2.0", "method":"Addons.SetAddonEnabled","params":{ "addonid": "%s", "enabled":false }, "id":1}' % addID
+    Log(query)
+    response = xbmc.executeJSONRPC(query)
+    Log(response)
 
     addon = xbmcaddon.Addon(addID)
 
@@ -483,17 +637,22 @@ def getExtension(path):
     except: return ''
 
 
-def isFilePlayable(path):
-    try:    return (getExtension(path) in PLAYABLE)
-    except: return False
+def isFilePlayable(path, maxAge=-1):
+    try:
+        age = sfile.age(path)
+        if maxAge > 0 and age > maxAge:
+            return False    
+        return (getExtension(path) in PLAYABLE)
+    except:
+        return False
 
 
-def isPlayable(path, ignore):
+def isPlayable(path, ignore, maxAge=-1):
     if not sfile.exists(path):
         return False
 
     if sfile.isfile(path):
-        playable = isFilePlayable(path)
+        playable = isFilePlayable(path, maxAge)
         return playable
 
     try:
@@ -505,12 +664,12 @@ def isPlayable(path, ignore):
     current, dirs, files = sfile.walk(path)
 
     for file in files:
-        if isPlayable(os.path.join(current, file), ignore):
+        if isPlayable(os.path.join(current, file), ignore, maxAge):
             return True
 
     for dir in dirs:
         try: 
-            if isPlayable(os.path.join(current, dir), ignore):
+            if isPlayable(os.path.join(current, dir), ignore, maxAge):
                 return True
         except:
             pass
@@ -520,6 +679,15 @@ def isPlayable(path, ignore):
 
 def getExternalDrive():
     return getSetting('EXT_DRIVE')
+
+
+def checkForExternalDrive():
+    extDrive = getExternalDrive()
+    if sfile.exists(extDrive):
+        return True
+
+    DialogOK(GETTEXT(30087), GETTEXT(30088))
+    return False
 
 
 def getDownloadLocation():
@@ -554,12 +722,26 @@ def _getAllPlayableFiles(folder, theFiles):
             theFiles[path] = [path, size]
 
 
-def parseFolder(folder, root=None, subfolders=True, ignore=[]):
+def parseFolder(folder, root=None, subfolders=True, ignore=[], maxAge=-1):
+    #try multiple times because sometimes
+    #we get back an empty list
+
+    items   = []
+    retries = 50
+    while len(items) == 0 and retries > 0:
+        items = _parseFolder(folder, root, subfolders, ignore, maxAge)
+        retries -= 1
+        xbmc.sleep(100)
+
+    return items
+
+
+def _parseFolder(folder, root, subfolders, ignore, maxAge=-1):
     items = []
 
     if not folder:
         folder = getExternalDrive()
-        if isPlayable(folder, ignore):
+        if isPlayable(folder, ignore, maxAge):
             items.append([root, folder, False, True])
         return items
 
@@ -570,12 +752,12 @@ def parseFolder(folder, root=None, subfolders=True, ignore=[]):
             path = os.path.join(current, dir)
             if dir.endswith('_PLAYALL'):
                 items.append([dir.rsplit('_PLAYALL', 1)[0], path, True, True])
-            elif isPlayable(path, ignore):
+            elif isPlayable(path, ignore, maxAge):
                 items.append([dir, path, False, True])
 
     for file in files:
         path = os.path.join(current, file)
-        if isPlayable(path, ignore):
+        if isPlayable(path, ignore, maxAge):
             items.append([removeExtension(file), path, True, False])
 
     return items
@@ -788,23 +970,23 @@ def patchAmazonImage(mode, image, url, infoLabels):
                 return img
 
     if mode == AMAZON_FOLDER:
-        return 'DefaultFolder.png'
+        return DEFAULTFOLDER
 
     if mode == AMAZON_FILE:
-        return 'DefaultMovies.png'
+        return DEFAULTMOVIE
 
 
 def patchImage(mode, image, url, infoLabels):
     if mode == SERVER_FOLDER:
-        return 'DefaultFolder.png'
+        return DEFAULTFOLDER
 
     if mode == AMAZON_FOLDER or mode == AMAZON_FILE:
         return patchAmazonImage(mode, image, url, infoLabels)
-            
+             
     if not image:
-        return ICON
+        return DEFAULTMOVIE
 
-    if image == 'DefaultMovies.png' or image == 'DefaultFolder.png':
+    if image == DEFAULTMOVIE or image == DEFAULTFOLDER:
         root = removeExtension(url)
         for ext in IMG_EXT:        
             img  = root + ext
@@ -952,11 +1134,12 @@ def DoDownload(name, dst, src, image=None, orignalSrc=None, progressClose=True, 
 
 import threading
 class Downloader(threading.Thread):
-     def __init__(self, name, dst, src):
+     def __init__(self, name, dst, src, postDownload=None):
          super(Downloader, self).__init__()
-         self.name  = name
-         self.dst   = dst
-         self.src   = src
+         self.name         = name
+         self.dst          = dst
+         self.src          = src
+         self.postDownload = postDownload
 
      def run(self):
          Log('Starting threaded downloader')
@@ -966,13 +1149,18 @@ class Downloader(threading.Thread):
 
          if sfile.exists(self.dst + '.temp.part'): #if temp.part file exists then download is already in progress
              Log('Request to download a file that is currently downloading: %s' % self.dst)
+             success = False
          else:
              success = DoDownload(self.name, self.dst, self.src, silent=True)
+             success = success == 0
              Log('success = %d' % success)
 
+         if self.postDownload:
+             self.postDownload(success)
 
-def DoThreadedDownload(name, dst, src):
-    downloader = Downloader(name, dst, src)
+
+def DoThreadedDownload(name, dst, src, postDownload=None):
+    downloader = Downloader(name, dst, src, postDownload)
     downloader.start()
 
 
@@ -993,6 +1181,18 @@ def delete(path, APPLICATION=None):
 
     if APPLICATION:
         APPLICATION.containerRefresh()
+
+
+def getResolution():
+    try:
+        resolution = xbmc.getInfoLabel('System.ScreenResolution')
+        resolution = resolution.split(' ')[0]
+        resolution = resolution.split('@')[0]
+    except:
+        resolution = 'unknown'
+
+    return resolution
+        
 
 
 def _DeleteFolder(folder, APPLICATION):
@@ -1023,3 +1223,19 @@ def _DeleteFile(filename, APPLICATION):
             APPLICATION.containerRefresh()
         except:
             pass
+
+
+def enableAutoUpdates():
+    ON     = 0
+    NOTIFY = 1
+    NEVER  = 2
+    setKodiSetting('general.addonupdates', ON)
+    xbmc.sleep(250)
+
+
+def disableAutoUpdates():
+    ON     = 0
+    NOTIFY = 1
+    NEVER  = 2
+    setKodiSetting('general.addonnotifications', False)
+    setKodiSetting('general.addonupdates', NEVER)

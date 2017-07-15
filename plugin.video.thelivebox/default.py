@@ -55,21 +55,21 @@ PROFILE = utils.PROFILE
 
 
 #Modes
-VIDEO_ADDON     = utils.VIDEO_ADDON
-SERVER_FILE     = utils.SERVER_FILE
-SETTINGS        = utils.SETTINGS
-CLEARCACHE      = utils.CLEARCACHE
-WAITING         = utils.WAITING
-EXAM            = utils.EXAM
-DEMO            = utils.DEMO
-SERVER_FOLDER   = utils.SERVER_FOLDER
-LOCAL_FOLDER    = utils.LOCAL_FOLDER
-AMAZON_FILE     = utils.AMAZON_FILE
-AMAZON_FOLDER   = utils.AMAZON_FOLDER
-UPDATE_FILE_CHK = utils.UPDATE_FILE_CHK
-UPDATE_FILE     = utils.UPDATE_FILE
-LOCAL_FILE      = utils.LOCAL_FILE
-REPLAY          = utils.REPLAY
+VIDEO_ADDON          = utils.VIDEO_ADDON
+SERVER_FILE          = utils.SERVER_FILE
+SETTINGS             = utils.SETTINGS
+CLEARCACHE           = utils.CLEARCACHE
+WAITING              = utils.WAITING
+EXAM                 = utils.EXAM
+DEMO                 = utils.DEMO
+SERVER_FOLDER        = utils.SERVER_FOLDER
+LOCAL_FOLDER         = utils.LOCAL_FOLDER
+AMAZON_FILE          = utils.AMAZON_FILE
+AMAZON_FOLDER        = utils.AMAZON_FOLDER
+UPDATE_FILE_CHK      = utils.UPDATE_FILE_CHK
+UPDATE_FILE          = utils.UPDATE_FILE
+LOCAL_FILE           = utils.LOCAL_FILE
+REPLAY               = utils.REPLAY
 
 SERVER           = utils.SERVER
 LBVERSION        = utils.LBVERSION
@@ -88,6 +88,10 @@ SHOW_HIDDEN    = utils.SHOW_HIDDEN
 
 
 DELIMETER = utils.DELIMETER
+
+
+DEFAULTMOVIE  = utils.DEFAULTMOVIE
+DEFAULTFOLDER = utils.DEFAULTFOLDER
 
 DSC = utils.DSC
 SRC = utils.SRC
@@ -136,24 +140,25 @@ def getGlobalMenu():
     return menu
     
 
-def MainList(client):    
-    hasClient = len(client) > 0
+def MainList():    
+    hasClient = utils.HasClient()
 
     menu = getGlobalMenu()
 
     if SHOW_CONFIGURE:
-        AddDir( 0, '[I]%s[/I]' % GETTEXT(30020), SETTINGS,        isFolder=False, isPlayable=False, desc=GETTEXT(30021), contextMenu=menu)
-
+        AddDir( 0, '[I]%s[/I]' % GETTEXT(30020), SETTINGS, isFolder=False, isPlayable=False, desc=GETTEXT(30021), contextMenu=menu)
+       
     if SHOW_REFRESH:
-        AddDir(10, '[I]%s[/I]' % GETTEXT(30007), CLEARCACHE,      isFolder=False, isPlayable=False, desc=GETTEXT(30018), contextMenu=menu)
+        AddDir(10, '[I]%s[/I]' % GETTEXT(30007), CLEARCACHE, isFolder=False, isPlayable=False, desc=GETTEXT(30018), contextMenu=menu)
 
     if hasClient:
         if SHOW_DOWNLOAD:
-            AddDir(20, '[I]%s[/I]' % GETTEXT(30075), UPDATE_FILE_CHK, isFolder=True,  isPlayable=False, desc=GETTEXT(30076), contextMenu=menu)
+            #AddDir(20, '[I]%s[/I]' % GETTEXT(30075), UPDATE_FILE_CHK, isFolder=True, isPlayable=False, desc=GETTEXT(30076), contextMenu=menu)
+            xbmcgui.Window(10000).setProperty('LB_CHECK_FOR_DOWNLOADABLE', 'true') 
 
-        if SHOW_VIMEO:
-            AddDir(30, GETTEXT(30026),               WAITING,         isFolder=False, isPlayable=True,  desc=GETTEXT(30028), contextMenu=menu)
-            AddDir(40, GETTEXT(30027),               EXAM,            isFolder=True,  isPlayable=False, desc=GETTEXT(30029), contextMenu=menu)
+        #if SHOW_VIMEO:
+        #    AddDir(46, GETTEXT(30026), WAITING, isFolder=False, isPlayable=True,  desc=GETTEXT(30028), contextMenu=menu)
+        #    AddDir(47, GETTEXT(30027), EXAM,    isFolder=True,  isPlayable=False, desc=GETTEXT(30029), contextMenu=menu)
 
     if SHOW_REPLAY and len(utils.getSetting('PARAMS')) > 0:
         AddDir(45, '[I]%s[/I]' % GETTEXT(30113), REPLAY, isFolder=False, isPlayable=True, desc=GETTEXT(30114), contextMenu=menu)
@@ -169,6 +174,7 @@ def MainList(client):
         AddDir(999, 'Demo',  DEMO, isFolder=True, isPlayable=False, desc='Demo', contextMenu=menu)
 
 
+
 def AddAmazonItems(index, folder, menu):
     browseFolder = utils.GETTEXT(30055)
     playVideo    = utils.GETTEXT(30056)
@@ -177,7 +183,8 @@ def AddAmazonItems(index, folder, menu):
     folderImg = 'DefaultFolder.png'
 
     if len(folder) == 0:
-        AddDir(index, utils.GETTEXT(30059), AMAZON_FOLDER, url=utils.GetClient(), image=folderImg, isFolder=True, isPlayable=False, desc=browseFolder, contextMenu=menu)
+        #currently browsing Amazon is disabled
+        #AddDir(index, utils.GETTEXT(30059), AMAZON_FOLDER, url=utils.GetClient(), image=folderImg, isFolder=True, isPlayable=False, desc=browseFolder, contextMenu=menu)
         return
 
     if not folder.endswith(DELIMETER):
@@ -221,11 +228,12 @@ def AddAmazonItems(index, folder, menu):
             pass
 
 
+
 def AddFolderItems(index, folder, menu):
     ignore = ['_', '.']
     if SHOW_HIDDEN:
         ignore = []
-    
+
     items = utils.parseFolder(folder, GETTEXT(30057), ignore=ignore)
     if len(items) == 0:
         return
@@ -233,8 +241,8 @@ def AddFolderItems(index, folder, menu):
     browseFolder = utils.GETTEXT(30055)
     playVideo    = utils.GETTEXT(30056)
 
-    file   = 'DefaultMovies.png'
-    folder = 'DefaultFolder.png'
+    file   = DEFAULTMOVIE
+    folder = DEFAULTFOLDER
 
     for item in items:
         label      = item[0]
@@ -330,7 +338,7 @@ def CheckForVideoUpdates(client):
     menu.append((GETTEXT(30020), '?mode=%d' % SETTINGS))
 
     for key in updates.keys():
-        suffix = GETTEXT(30083)
+        prefix = GETTEXT(30083)
         toAdd  = True
         update = updates[key]
 
@@ -351,7 +359,7 @@ def CheckForVideoUpdates(client):
             dst = current[0]
 
         else:
-            suffix = GETTEXT(30084)
+            prefix = GETTEXT(30084) #change to 'New'
             toAdd  = True
             src    = update[0]
             dst    = src.replace(amzUpdate, extDrive, 1)
@@ -367,7 +375,7 @@ def CheckForVideoUpdates(client):
             
             url  = 'name=%s&src=%s&dst=%s' % (urllib.quote_plus(name), src, dst)
 
-            AddDir(index, name+suffix, UPDATE_FILE, url=url, image='DefaultMovies.png', desc=GETTEXT(30077), plot=plot, contextMenu=None)
+            AddDir(index, prefix+name, UPDATE_FILE, url=url, image='DefaultMovies.png', desc=GETTEXT(30077), plot=plot, contextMenu=None)
 
     if index == 0:
         if xbmcgui.Window(10000).getProperty('LB_AUTOPLAY').lower() <> 'true':
@@ -740,7 +748,7 @@ def main():
         PlayFromScript(url,  title, image, mode-10000, window)        
 
     else:           
-        MainList(client)
+        MainList()
 
     xbmcplugin.endOfDirectory(int(sys.argv[1]))
 

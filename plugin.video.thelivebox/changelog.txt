@@ -1,5 +1,17 @@
 
 
+[COLOR chartreuse]2.0.4: 15th July 2017[/COLOR]
+    - skin and functionality changes for new look and feel
+
+
+[COLOR chartreuse]1.0.0.23: 28th June 2016[/COLOR]
+    - skin and functionality changes for new look and feel
+
+
+[COLOR chartreuse]1.0.0.22[/COLOR]
+    - unreleased in order to bring version numbers in line
+
+
 [COLOR chartreuse]1.0.0.21: 31st March 2016[/COLOR]
     - added play previously played video
     - added timeframe playback feature

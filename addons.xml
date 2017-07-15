@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.thelivebox" name="The Live Box" version="1.0.0.21" provider-name="The Livebox Network">
+<addon id="plugin.video.thelivebox" name="The Live Box" version="2.0.4" provider-name="The Livebox Network">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
   </requires>
@@ -81,20 +81,18 @@
     </extension>
 </addon>
 
-<addon id="script.video.thelivebox" name="The Livebox Network" version="1.0.0.23" provider-name="The Livebox Network">
+<addon id="script.video.thelivebox" name="THE LIVE BOX" version="2.0.4" provider-name="The Live Box">
     <requires>
         <import addon="xbmc.python" version="2.1.0"/>
-		<import addon="plugin.video.vimeo" version="4.1.1"/>
-		<import addon="plugin.video.thelivebox" version="1.0.0.21"/>
-		<import addon="plugin.video.thelivebox-admin" version="1.0.3"/>
+        <import addon="plugin.video.thelivebox" version="2.0.4"/>
     </requires>
     <extension point="xbmc.python.script" library="default.py">
         <provides>video</provides>
     </extension>
 	<extension point="xbmc.service" library="service.py" start="startup" />
     <extension point="xbmc.addon.metadata">
-		<summary lang="en">Welcome to The Live Box Network!</summary>
-		<description lang="en">Welcome to The Live Box Network! The Live Box produces video programming for businesses that is curated content to the client.  The Live Box features rich, lifestyle programming that helps businesses brand and market to their clients through HDTV's, iPads, Social Media and web. Programming is updated monthly and can include On Location filming segments as well. Find out more by visiting www.thelivebox.com.</description>
+		<summary lang="en">Welcome to The Live Box!</summary>
+		<description lang="en">Welcome to The Live Box! The Live Box produces video programming for businesses that is curated content to the client.  The Live Box features rich, lifestyle programming that helps businesses brand and market to their clients through HDTV's, iPads, Social Media and web. Programming is updated monthly and can include On Location filming segments as well. Find out more by visiting www.thelivebox.com.</description>
 		<platform>all</platform>
   </extension>
 </addon>
